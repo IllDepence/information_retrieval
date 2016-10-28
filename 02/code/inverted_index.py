@@ -130,16 +130,19 @@ class InvertedIndex:
 
         return result
 
-    def query(self, keywords):
-        r""" Given a list of keywords, compute the list of record IDs that
-        contains all of them.
+    def process_query(self, q):
+        r""" Given a list of keywords, find the 3 best maches accoding to
+        BM25.
 
         >>> import io
-        >>> f = io.StringIO('a b c d\na b d\na c f d\na bc d')
-        >>> ii = InvertedIndex(f)
-        >>> ii.query(['a', 'c', 'd'])
-        [0, 2]
+        >>> import pprint
+        >>> txt ='first docum.\nsecond second docum.\nthird third third docum.'
+        >>> f = io.StringIO(txt)
+        >>> ii = InvertedIndex(f, 1.75, 0.75)
+        >>> ii.process_query('docum third')
+        [(2, 2.5207), (0, 0.0), (1, 0.0)]
         """
+        keywords = q.split(' ')
 
         # special cases
         for word in keywords:
@@ -148,14 +151,18 @@ class InvertedIndex:
         if len(keywords) == 0:
             return []
         if len(keywords) == 1:
-            return self.invertedLists[keywords[0]]
+            rawList = self.invertedLists[keywords[0]]
+            sortdList = sorted(rawList, key=lambda x: -x[1])
+            return sortdList[0:3]
 
         # actual intersecting
         list1 = self.invertedLists[keywords[0]]
-        for idx in range(1, len(keywords)):
-            list2 = self.invertedLists[keywords[idx]]
-            list1 = self.intersect(list1, list2)
-        return list1
+        for i in range(1, len(keywords)):
+            list2 = self.invertedLists[keywords[i]]
+            list1 = self.merge(list1, list2)
+
+        sortdList = sorted(list1, key=lambda x: -x[1])
+        return sortdList[0:3]
 
 if __name__ == '__main__':
     """ Answer user queries for a file given as command line parameter. """
@@ -172,8 +179,7 @@ if __name__ == '__main__':
 
     while True:
         queryLine = input('\nEnter a query (space separated keywords)\n> ')
-        q = queryLine.split(' ')
-        matches = ii.query(q)
+        matches = ii.query(queryLine)
         maxResults = 3
         if len(matches) < maxResults:
             maxResults = len(matches)
