@@ -24,15 +24,15 @@ class InvertedIndex:
         >>> f = io.StringIO(txt)
         >>> ii = InvertedIndex(f, 1.75, 0.75)
         >>> pprint.pprint(sorted(ii.invListSimpleTf.items()))
-        [('docum', {0: 1, 1: 1, 2: 1}),
-         ('first', {0: 1}),
-         ('second', {1: 2}),
-         ('third', {2: 3})]
+        [('docum', [(0, 1), (1, 1), (2, 1)]),
+         ('first', [(0, 1)]),
+         ('second', [(1, 2)]),
+         ('third', [(2, 3)])]
         >>> pprint.pprint(sorted(ii.invertedLists.items()))
-        [('docum', {0: 0.0, 1: 0.0, 2: 0.0}),
-         ('first', {0: 1.8848}),
-         ('second', {1: 2.3246}),
-         ('third', {2: 2.5207})]
+        [('docum', [(0, 0.0), (1, 0.0), (2, 0.0)]),
+         ('first', [(0, 1.8848)]),
+         ('second', [(1, 2.3246)]),
+         ('third', [(2, 2.5207)])]
         """
 
         self.k = bm25k
@@ -42,91 +42,91 @@ class InvertedIndex:
         self.avdl = 0
         recordId = 0
 
-        # pass 1: calculate tf, dl and avdl
-        for line in fileObj:                            # for every record
+        """ Pass 1: calculate tf, dl and avdl. """
+        for line in fileObj:
             if recordId not in self.records:
                 self.records[recordId] = {}
             self.records[recordId]['line'] = line
             self.records[recordId]['dl'] = 0
-            uniqueWords = []
             for word in re.split('\W+', line):
-                if len(word) > 0:                       # for every word
+                if len(word) > 0:
                     self.records[recordId]['dl'] += 1
                     self.avdl += 1
-                    if word not in self.invertedLists:         # new word (ii)
-                        self.invertedLists[word] = {}
-                    if word not in uniqueWords:                # new word (rec)
-                        self.invertedLists[word][recordId] = 0
-                        uniqueWords.append(word)
-                    self.invertedLists[word][recordId] += 1
+
+                    """ First occurence of word in file, create inv. list. """
+                    if word not in self.invertedLists:
+                        self.invertedLists[word] = []
+
+                    """ First occurence of word in record, add tuple w/ 0. """
+                    if len(self.invertedLists[word]) == 0 or\
+                                   self.invertedLists[word][-1][0] != recordId:
+                        self.invertedLists[word].append((recordId, 0))
+                    """ Increase tf by 1 from 0 or previous value. """
+                    currTf = self.invertedLists[word][-1][1]
+                    self.invertedLists[word][-1] = (recordId, currTf + 1)
+
             recordId += 1
 
         self.numDocs = recordId  # started at 0, increased at loop end
         self.avdl = self.avdl / self.numDocs
 
-        # pass 2: calculate tf* idf
+        """ Pass 2: calculate tf* idf. """
         tmpInvLists = {}
-        for word, dic in self.invertedLists.items():
-            df = len(dic)
-            tmpInvLists[word] = {}
-            for recId, tf in dic.items():
+        for word, invList in self.invertedLists.items():
+            df = len(invList)
+            tmpInvLists[word] = []
+            for recId, tf in invList:
                 dl = self.records[recId]['dl']
                 numer = tf * (self.k+1)
                 denom = self.k * (1-self.b + ((self.b*dl) / self.avdl)) + tf
                 bm25tf = numer / denom
                 idf = math.log2(self.numDocs / df)
                 bm25score = bm25tf * idf
-                bm25score = float('{0:.4f}'.format(bm25score))  # precision
-                                                                # as in TIPfile
-                tmpInvLists[word][recId] = bm25score
+                """ Precision to 4 decimals as in TIP file. """
+                bm25score = float('{0:.4f}'.format(bm25score))
+                tmpInvLists[word].append((recId, bm25score))
 
         self.invListSimpleTf = self.invertedLists  # save for doctest
         self.invertedLists = tmpInvLists
 
-    def intersect(self, list1, list2):
-        r""" Compute the intersection of two sorted inverted lists.
+    def merge(self, l1, l2):
+        r""" Merge two lists of recId bm25score touples by adding values.
 
         >>> import io
-        >>> ii = InvertedIndex(io.StringIO(''))
-        >>> ii.intersect([0, 1, 2, 3], [0, 3])
-        [0, 3]
+        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
+        >>> l1 = [(2, 0), (5, 2), (7, 7), (8, 6)]
+        >>> l2 = [(4, 1), (5, 3), (6, 3), (8, 3), (9, 8)]
+        >>> ii.merge(l1, l2)
+        [(2, 0), (4, 1), (5, 5), (6, 3), (7, 7), (8, 9), (9, 8)]
         """
 
-        if len(list1) == 0 or len(list2) == 0:
-            return []
-
-        idx1 = 0
-        idx2 = 0
-        reachedEnd = False
+        i = 0
+        j = 0
         result = []
-        while not reachedEnd:
-            advace1 = False
-            advace2 = False
-            curr1 = list1[idx1]
-            curr2 = list2[idx2]
-            reachedEnd1 = (list1[-1] == curr1)  # safe b/c record IDs are uniqe
-            reachedEnd2 = (list2[-1] == curr2)
+        while i < len(l1) and j < len(l2):
+            t1 = l1[i]
+            t2 = l2[j]
 
-            if curr1 == curr2:  # match :)
-                if curr1 not in result:
-                    result.append(curr1)
-                advace1 = True
-                advace2 = True
-            elif curr1 < curr2:
-                advace1 = True
+            if t1[0] == t2[0]:
+                """ IDs match. Add scores, move both indices. """
+                result.append((t1[0], t1[1]+t2[1]))
+                i += 1
+                j += 1
+            elif t1[0] < t2[0]:
+                """ Add list1's value before moving on. """
+                result.append(t1)
+                i += 1
             else:
-                advace2 = True
-
-            if advace1:
-                if reachedEnd1:       # Only higher record IDs w/o matches left
-                    reachedEnd = True
-                else:
-                    idx1 += 1
-            if advace2:
-                if reachedEnd2:
-                    reachedEnd = True
-                else:
-                    idx2 += 1
+                """ Add list2's value before moving on. """
+                result.append(t2)
+                j += 1
+        """ Append rest of longer list. """
+        if len(l1) > len(l2):
+            for k in range(len(l2), len(l1)):
+                result.append(l1[k])
+        elif len(l2) > len(l1):
+            for k in range(len(l1), len(l2)):
+                result.append(l2[k])
 
         return result
 
