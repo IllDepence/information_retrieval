@@ -19,11 +19,20 @@ class InvertedIndex:
         r""" Create inverted index given a file object and BM25 parameters.
 
         >>> import io
+        >>> import pprint
         >>> txt ='first docum.\nsecond second docum.\nthird third third docum.'
         >>> f = io.StringIO(txt)
         >>> ii = InvertedIndex(f, 1.75, 0.75)
-        >>> sorted(ii.invertedLists.items())
-        [('docum', [0, 1, 2]), ('first', [0]), ('second', [1]), ('third', [2])]
+        >>> pprint.pprint(sorted(ii.invListSimpleTf.items()))
+        [('docum', {0: 1, 1: 1, 2: 1}),
+         ('first', {0: 1}),
+         ('second', {1: 2}),
+         ('third', {2: 3})]
+        >>> pprint.pprint(sorted(ii.invertedLists.items()))
+        [('docum', {0: 0.0, 1: 0.0, 2: 0.0}),
+         ('first', {0: 1.8848}),
+         ('second', {1: 2.3246}),
+         ('third', {2: 2.5207})]
         """
 
         self.k = bm25k
@@ -52,7 +61,7 @@ class InvertedIndex:
                     self.invertedLists[word][recordId] += 1
             recordId += 1
 
-        self.numDocs = recordId + 1
+        self.numDocs = recordId  # started at 0, increased at loop end
         self.avdl = self.avdl / self.numDocs
 
         # pass 2: calculate tf* idf
@@ -63,14 +72,16 @@ class InvertedIndex:
             for recId, tf in dic.items():
                 dl = self.records[recId]['dl']
                 numer = tf * (self.k+1)
-                denom = self.k * (1-self.b +( (self.b*dl) / self.avdl) )+ tf
+                denom = self.k * (1-self.b + ((self.b*dl) / self.avdl)) + tf
                 bm25tf = numer / denom
-                idf = math.log2( self.numDocs / df )
+                idf = math.log2(self.numDocs / df)
                 bm25score = bm25tf * idf
+                bm25score = float('{0:.4f}'.format(bm25score))  # precision
+                                                                # as in TIPfile
                 tmpInvLists[word][recId] = bm25score
 
+        self.invListSimpleTf = self.invertedLists  # save for doctest
         self.invertedLists = tmpInvLists
-
 
     def intersect(self, list1, list2):
         r""" Compute the intersection of two sorted inverted lists.
