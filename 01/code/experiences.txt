@@ -1,0 +1,12 @@
+General
+=======
+I had no major problems and invested an estimated 4-5 hours to solve the exercise. The corresponding lecture was easy to follow.
+
+
+Exercise 2
+==========
+Good: Star Wars parody
+Bad: space nazis
+
+Explanation (guess):
+"Star Wars" is a given title and "parody" a defining characteristic likely to appear in a description. With "space nazis" I wanted to find the movie Iron Sky but it turns out only the string "Nazi" (no "s" and starting with a capital "N") is contained in the description.
