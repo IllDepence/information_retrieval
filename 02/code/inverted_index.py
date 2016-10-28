@@ -174,18 +174,15 @@ if __name__ == '__main__':
     print('Building inverted index ...')
     fileName = sys.argv[1]
     with open(fileName) as f:
-        ii = InvertedIndex(f)
+        ii = InvertedIndex(f, 1.75, 0.75)
     print('done')
 
     while True:
         queryLine = input('\nEnter a query (space separated keywords)\n> ')
-        matches = ii.query(queryLine)
-        maxResults = 3
-        if len(matches) < maxResults:
-            maxResults = len(matches)
-        for i in range(maxResults):
-            text = ii.records[matches[i]].strip()
-            for keyword in q:
+        matches = ii.process_query(queryLine)
+        for recId, score in matches:
+            text = ii.records[recId]['line'].strip()
+            for keyword in queryLine.split(' '):
                 patt = r'\b(' + keyword + r')\b'
                 text = re.sub(patt, '[32m\g<0>[0m', text)
-            print('[1mMatch #{0}[0m: {1}'.format(i+1, text))
+            print('[1m[{0:.4f}][0m: {1}'.format(score, text))
