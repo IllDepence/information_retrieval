@@ -50,6 +50,7 @@ class InvertedIndex:
             self.records[recordId]['dl'] = 0
             for word in re.split('\W+', line):
                 if len(word) > 0:
+                    word = word.lower()
                     self.records[recordId]['dl'] += 1
                     self.avdl += 1
 
@@ -59,7 +60,7 @@ class InvertedIndex:
 
                     """ First occurence of word in record, add tuple w/ 0. """
                     if len(self.invertedLists[word]) == 0 or\
-                                   self.invertedLists[word][-1][0] != recordId:
+                       self.invertedLists[word][-1][0] != recordId:
                         self.invertedLists[word].append((recordId, 0))
                     """ Increase tf by 1 from 0 or previous value. """
                     currTf = self.invertedLists[word][-1][1]
@@ -122,11 +123,17 @@ class InvertedIndex:
                 j += 1
         """ Append rest of longer list. """
         if len(l1) > len(l2):
-            for k in range(len(l2), len(l1)):
-                result.append(l1[k])
+            for i in range(len(l2), len(l1)):
+                if result[-1][0] == l1[i][0]:
+                    result[-1] = (result[-1][0], result[-1][1] + l1[i][1])
+                else:
+                    result.append(l1[i])
         elif len(l2) > len(l1):
-            for k in range(len(l1), len(l2)):
-                result.append(l2[k])
+            for i in range(len(l1), len(l2)):
+                if result[-1][0] == l2[i][0]:
+                    result[-1] = (result[-1][0], result[-1][1] + l2[i][1])
+                else:
+                    result.append(l2[i])
 
         return result
 
@@ -143,11 +150,9 @@ class InvertedIndex:
         [(2, 2.5207), (0, 0.0), (1, 0.0)]
         """
         keywords = q.split(' ')
+        keywords = [w.lower() for w in keywords]
 
-        # special cases
-        for word in keywords:
-            if word not in self.invertedLists:
-                return []
+        """ Special cases. """
         if len(keywords) == 0:
             return []
         if len(keywords) == 1:
@@ -155,14 +160,17 @@ class InvertedIndex:
             sortdList = sorted(rawList, key=lambda x: -x[1])
             return sortdList[0:3]
 
-        # actual intersecting
+        """ Actual merging. """
         list1 = self.invertedLists[keywords[0]]
         for i in range(1, len(keywords)):
-            list2 = self.invertedLists[keywords[i]]
-            list1 = self.merge(list1, list2)
+            if keywords[i] in self.invertedLists:
+                list2 = self.invertedLists[keywords[i]]
+                list1 = self.merge(list1, list2)
 
         sortdList = sorted(list1, key=lambda x: -x[1])
         return sortdList[0:3]
+
+#class EvaluateBenchmark:
 
 if __name__ == '__main__':
     """ Answer user queries for a file given as command line parameter. """
@@ -174,7 +182,7 @@ if __name__ == '__main__':
     print('Building inverted index ...')
     fileName = sys.argv[1]
     with open(fileName) as f:
-        ii = InvertedIndex(f, 1.75, 0.75)
+        ii = InvertedIndex(f, 1.2, 0.5)
     print('done')
 
     while True:
@@ -184,5 +192,5 @@ if __name__ == '__main__':
             text = ii.records[recId]['line'].strip()
             for keyword in queryLine.split(' '):
                 patt = r'\b(' + keyword + r')\b'
-                text = re.sub(patt, '[32m\g<0>[0m', text)
+                text = re.sub(patt, '[32m\g<0>[0m', text, flags=re.I)
             print('[1m[{0:.4f}][0m: {1}'.format(score, text))
