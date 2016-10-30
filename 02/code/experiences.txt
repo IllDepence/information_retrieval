@@ -1,6 +1,8 @@
 General
 =======
-4-5 hours for Ex 1.
+About 5 hours for exercise 1 (includes revamping of code from sheet 1 that was bad).
+About 3-4 hours for exercise 2+3.
+The corresponding lecture was easy to follow for the most part. As for the "plausibility argument for BM25" ... I got the gist of it I guess.
 
 
 Exercise 2
@@ -34,3 +36,7 @@ b     | "men in black"     | "terminator sequel"      | <almost all requests>
 
 It's hard to find queries where the quality of results differs in any significant and/or understandable way.
 Going with b=0.5.
+
+Also addded filtering of stopwords.
+
+Looking back (after having done exercise 3), I should've used an ouput of more than 3 results to test k and b values.

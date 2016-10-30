@@ -41,6 +41,7 @@ class InvertedIndex:
         self.records = {}
         self.avdl = 0
         recordId = 0
+        self.stopwords = []
 
         """ Pass 1: calculate tf, dl and avdl. """
         for line in fileObj:
@@ -91,7 +92,7 @@ class InvertedIndex:
         self.invertedLists = tmpInvLists
 
     def merge(self, l1, l2):
-        r""" Merge two lists of recId bm25score touples by adding values.
+        """ Merge two lists of recId bm25score touples by adding values.
 
         >>> import io
         >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
@@ -104,9 +105,26 @@ class InvertedIndex:
         i = 0
         j = 0
         result = []
-        while i < len(l1) and j < len(l2):
-            t1 = l1[i]
-            t2 = l2[j]
+        iDone = False
+        jDone = False
+        while not (iDone and jDone):
+            if not iDone:
+                t1 = l1[i]
+            if not jDone:
+                t2 = l2[j]
+
+            if iDone:
+                result.append(t2)
+                j += 1
+                if j == len(l2):
+                    jDone = True
+                continue
+            if jDone:
+                result.append(t1)
+                i += 1
+                if i == len(l1):
+                    iDone = True
+                continue
 
             if t1[0] == t2[0]:
                 """ IDs match. Add scores, move both indices. """
@@ -121,23 +139,15 @@ class InvertedIndex:
                 """ Add list2's value before moving on. """
                 result.append(t2)
                 j += 1
-        """ Append rest of longer list. """
-        if len(l1) > len(l2):
-            for i in range(len(l2), len(l1)):
-                if result[-1][0] == l1[i][0]:
-                    result[-1] = (result[-1][0], result[-1][1] + l1[i][1])
-                else:
-                    result.append(l1[i])
-        elif len(l2) > len(l1):
-            for i in range(len(l1), len(l2)):
-                if result[-1][0] == l2[i][0]:
-                    result[-1] = (result[-1][0], result[-1][1] + l2[i][1])
-                else:
-                    result.append(l2[i])
+
+            if i == len(l1):
+                iDone = True
+            if j == len(l2):
+                jDone = True
 
         return result
 
-    def process_query(self, q):
+    def processQuery(self, q):
         r""" Given a list of keywords, find the 3 best maches accoding to
         BM25.
 
@@ -146,19 +156,23 @@ class InvertedIndex:
         >>> txt ='first docum.\nsecond second docum.\nthird third third docum.'
         >>> f = io.StringIO(txt)
         >>> ii = InvertedIndex(f, 1.75, 0.75)
-        >>> ii.process_query('docum third')
+        >>> ii.processQuery('docum third')
         [(2, 2.5207), (0, 0.0), (1, 0.0)]
         """
+
         keywords = q.split(' ')
         keywords = [w.lower() for w in keywords]
+        keywords = [w for w in keywords if w not in self.stopwords]
 
         """ Special cases. """
         if len(keywords) == 0:
             return []
         if len(keywords) == 1:
+            if keywords[0] not in self.invertedLists:
+                return []
             rawList = self.invertedLists[keywords[0]]
             sortdList = sorted(rawList, key=lambda x: -x[1])
-            return sortdList[0:3]
+            return sortdList
 
         """ Actual merging. """
         list1 = self.invertedLists[keywords[0]]
@@ -168,9 +182,60 @@ class InvertedIndex:
                 list1 = self.merge(list1, list2)
 
         sortdList = sorted(list1, key=lambda x: -x[1])
-        return sortdList[0:3]
+        return sortdList
 
-#class EvaluateBenchmark:
+    def setStopwords(self, lisd):
+        self.stopwords = lisd
+
+
+class EvaluateBenchmark:
+    """ Class with functions for computing MP@3, MP@R and MAP. """
+
+    def precisionAtK(self, resultsIds, relevantIds, k):
+        """ Given lists of calculated, actually relevant record IDs and k,
+        calculate P@k.
+
+        >>> eb = EvaluateBenchmark()
+        >>> eb.precisionAtK([0, 1, 2, 5, 6], [0, 2, 5, 6, 7, 8], 4)
+        0.75
+        """
+
+        res = resultsIds[0:k]
+        hit = 0
+        for r in relevantIds:
+            if r in res:
+                hit += 1
+        return hit/k
+
+    def precisionAtR(self, resultsIds, relevantIds):
+        """ Given lists of calculated and actually relevant record IDs,
+        calculate P@R.
+
+        >>> eb = EvaluateBenchmark()
+        >>> eb.precisionAtR([0, 1, 2, 5], [0, 2, 5, 7, 11, 12])
+        0.5
+        """
+
+        return self.precisionAtK(resultsIds, relevantIds, len(relevantIds))
+
+    def avgPrecision(self, resultsIds, relevantIds):
+        """ Given lists of calculated and actually relevant record IDs,
+        calculate AP.
+
+        >>> eb = EvaluateBenchmark()
+        >>> eb.avgPrecision([582, 17, 5666, 10003, 10], [10, 582, 877, 10003])
+        0.525
+        """
+
+        pSum = 0
+        for relId in relevantIds:
+            if relId not in resultsIds:
+                continue
+            else:
+                k = resultsIds.index(relId) + 1
+                pSum += self.precisionAtK(resultsIds, relevantIds, k)
+
+        return pSum/len(relevantIds)
 
 if __name__ == '__main__':
     """ Answer user queries for a file given as command line parameter. """
@@ -185,12 +250,54 @@ if __name__ == '__main__':
         ii = InvertedIndex(f, 1.2, 0.5)
     print('done')
 
-    while True:
-        queryLine = input('\nEnter a query (space separated keywords)\n> ')
-        matches = ii.process_query(queryLine)
-        for recId, score in matches:
-            text = ii.records[recId]['line'].strip()
-            for keyword in queryLine.split(' '):
-                patt = r'\b(' + keyword + r')\b'
-                text = re.sub(patt, '[32m\g<0>[0m', text, flags=re.I)
-            print('[1m[{0:.4f}][0m: {1}'.format(score, text))
+    stopwords = []
+    with open('stopwords_en.txt') as f:
+        for line in f:
+            stopwords.append(line.strip())
+    ii.setStopwords(stopwords)
+
+    mode = input('\n[i]nteractive or [b]enchmark?\n> ')
+    if mode == 'i':
+        while True:
+            queryLine = input('\nEnter a query (space separated keywords)\n> ')
+            matches = ii.processQuery(queryLine)
+            for recId, score in matches[0:3]:
+                text = ii.records[recId]['line'].strip()
+                for keyword in queryLine.split(' '):
+                    patt = r'\b(' + keyword + r')\b'
+                    text = re.sub(patt, '[32m\g<0>[0m', text, flags=re.I)
+                print('[1m[{0:.4f}][0m: {1}'.format(score, text))
+    elif mode == 'b':
+        eb = EvaluateBenchmark()
+        with open('movies-benchmark.txt') as f:
+            mpAt3 = 0
+            mpAtR = 0
+            mAp = 0
+            count = 0
+            for line in f:
+                query, idLine = line.strip().split('\t')
+                relIds = idLine.split(' ')
+                """ movies-benchmark.txt assumes movie IDs starting at 1
+                whereas I work with IDs starting at 0, therefore I decrement
+                all relevant IDs by 1. """
+                relIds = [int(x)-1 for x in relIds]
+                result = ii.processQuery(query)
+                resIds = [r[0] for r in result]
+                pAt3 = eb.precisionAtK(resIds, relIds, 3)
+                pAtR = eb.precisionAtR(resIds, relIds)
+                ap = eb.avgPrecision(resIds, relIds)
+                print('\nQuery: {0}'.format(query))
+                print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
+                    pAt3, pAtR, ap))
+                mpAt3 += pAt3
+                mpAtR += pAtR
+                mAp += ap
+                count += 1
+            mpAt3 = mpAt3 / count
+            mpAtR = mpAtR / count
+            mAp = mAp / count
+            print('\nAverage:')
+            print('MP@3 {0:.2f} | MP@R {1:.2f} | MAP: {2:.2f}'.format(
+                mpAt3, mpAtR, mAp))
+    else:
+        sys.exit()
