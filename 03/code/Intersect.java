@@ -25,8 +25,8 @@ public class Intersect {
     String l = bufferedReader.readLine();
     int numRecords = Integer.parseInt(l);
 
-    int[] ids = new int[numRecords];
-    int[] scores = new int[numRecords];
+    int[] ids = new int[numRecords + 1];
+    int[] scores = new int[numRecords + 1];
 
     int i = 0;
     while (i < numRecords) {
@@ -39,7 +39,10 @@ public class Intersect {
       ids[i - 1] = Integer.parseInt(parts[0]);
       scores[i - 1] = Integer.parseInt(parts[1]);
     }
-    return new PostingList(ids, scores);
+    // sentinels
+    ids[numRecords] = Integer.MAX_VALUE;
+    scores[numRecords] = 0;
+    return new PostingList(ids, scores, i);
   }
 
   /**
@@ -54,24 +57,17 @@ public class Intersect {
     int i = 0;
     int j = 0;
     int k = 0;
-    while (i < n1 && j < n2) {
-      while (i < n1 && list1.ids[i] < list2.ids[j]) {
+    while (true) {
+      while (list1.ids[i] < list2.ids[j]) {
         i++;
       }
-
-      if (i == n1) {
-        break;
-      }
-
-      while (j < n2 && list2.ids[j] < list1.ids[i]) {
+      while (list2.ids[j] < list1.ids[i]) {
         j++;
       }
-
-      if (j == n2) {
-        break;
-      }
-
       if (list1.ids[i] == list2.ids[j]) {
+        if (list1.ids[i] == Integer.MAX_VALUE) {
+          break;
+        }
         ids[k] = list1.ids[i];
         scores[k] = (list1.scores[i] + list2.scores[j]);
         i++;
@@ -80,8 +76,6 @@ public class Intersect {
       }
     }
 
-    PostingList result = new PostingList(ids, scores);
-    result.size = k;
-    return result;
+    return new PostingList(ids, scores, k);
   }
 }

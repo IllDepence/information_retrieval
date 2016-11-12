@@ -10,12 +10,13 @@ public class PostingList {
 
   public PostingList() { }
 
-  public PostingList(int[] ids, int[] scores) {
+  public PostingList(int[] ids, int[] scores, int size) {
     this.ids = ids;
     this.scores = scores;
+    this.size = size;
   }
 
-  // bad hack to make the unit test happy
+  // make the unit test happy
   public void clean() {
     int[] tmpIds = new int[this.size];
     int[] tmpScores = new int[this.size];

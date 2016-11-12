@@ -17,9 +17,11 @@ public class IntersectTest {
   public void readPostingListFromFile() throws IOException {
     Intersect i = new Intersect();
     PostingList list1 = i.readPostingListFromFile("example1.txt");
+    list1.clean();
     Assert.assertEquals("[10, 20, 30]", Arrays.toString(list1.ids));
     Assert.assertEquals("[1, 2, 3]", Arrays.toString(list1.scores));
     PostingList list2 = i.readPostingListFromFile("example2.txt");
+    list2.clean();
     Assert.assertEquals("[10, 20, 40]", Arrays.toString(list2.ids));
     Assert.assertEquals("[1, 2, 4]", Arrays.toString(list2.scores));
   }
@@ -30,10 +32,10 @@ public class IntersectTest {
     PostingList list1 = new PostingList();
     PostingList list2 = new PostingList();
 
-    list1.ids = new int[] {5, 10, 20, 30, 50, 60};
-    list1.scores = new int[] {0, 1, 2, 3, 4, 5};
-    list2.ids = new int[] {1, 2, 3, 10, 20, 40, 61};
-    list2.scores = new int[] {1, 5, 4, 1, 2, 4, 9};
+    list1.ids = new int[] {5, 10, 20, 30, 50, 60, Integer.MAX_VALUE};
+    list1.scores = new int[] {0, 1, 2, 3, 4, 5, 0};
+    list2.ids = new int[] {1, 2, 3, 10, 20, 40, 61, Integer.MAX_VALUE};
+    list2.scores = new int[] {1, 5, 4, 1, 2, 4, 9, 0};
 
     PostingList result = i.intersect(list1, list2);
     result.clean();
