@@ -1,3 +1,6 @@
+### Machine Spec ###
+Intel Core i5-4210U CPU @ 1.70GHz - 8GB RAM
+
 ### Baseline ###
 $ java -jar IntersectMain.jar existence.txt bielefeld.txt
     4210

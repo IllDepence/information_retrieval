@@ -1,0 +1,7 @@
+General
+=======
+1 hour to find out that
+[junit] expected:<[10, 20[]]> but was:<[10, 20[, 0, 0, 0, 0]]>
+means there's allocated but unused space in my result array and junit doesn't like it.
+
+The corresponding lecture ...

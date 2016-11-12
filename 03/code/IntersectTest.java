@@ -36,6 +36,7 @@ public class IntersectTest {
     list2.scores = new int[] {1, 5, 4, 1, 2, 4, 9};
 
     PostingList result = i.intersect(list1, list2);
+    result.clean();
 
     Assert.assertEquals("[10, 20]", Arrays.toString(result.ids));
     Assert.assertEquals("[2, 4]", Arrays.toString(result.scores));
