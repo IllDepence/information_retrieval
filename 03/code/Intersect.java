@@ -58,18 +58,71 @@ public class Intersect {
       small = list2;
       large = list1;
     }
-    if (small.size * 10 < large.size) {
+    if (small.size * 100 < large.size) {
       return intersectBinary(small, large);
     } else {
       return intersectZipper(small, large);
     }
   }
 
+  /**
+   * Intersect two posting lists using binary search algorithm.
+   */
   PostingList intersectBinary(PostingList small, PostingList large) {
-    return intersectZipper(small, large);
-    //return new PostingList(ids, scores, k);
+    int[] ids = new int[small.size];
+    int[] scores = new int[small.size];
+    int size = 0;
+    int lowerBound = 0;
+    int[] result = new int[2];
+    for (int i = 0; i < small.size; i++) {
+      result = binarySearch(large, lowerBound, small.ids[i]);
+      // not found
+      if (result[0] == 0) {
+        lowerBound = result[1];
+      }
+      // found
+      if (result[0] == 1) {
+        lowerBound = result[1];
+        ids[size] = small.ids[i];
+        scores[size] = (small.scores[i] + large.scores[result[1]]);
+        size++;
+      }
+    }
+    return new PostingList(ids, scores, size);
   }
 
+  /**
+   * Binary search for value in PostingList; return (success, id) tuple.
+   */
+  int[] binarySearch(PostingList large, int lowerBound, int search) {
+    int dist = Integer.MAX_VALUE;
+    int upperBound = large.size - 1;
+    int suspect = Integer.MIN_VALUE;
+    while (dist > 2) {
+      suspect = ((upperBound - lowerBound) / 2) + lowerBound;
+      if (large.ids[suspect] == search) {
+        return new int[] {1, suspect};
+      }
+      if (large.ids[suspect] > search) {
+        upperBound = suspect;
+      } else {
+        lowerBound = suspect;
+      }
+      dist = upperBound - lowerBound;
+    }
+
+    if (large.ids[lowerBound] == search) {
+      return new int[] {1, lowerBound};
+    }
+    if (large.ids[upperBound] == search) {
+      return new int[] {1, upperBound};
+    }
+    return new int[] {0, suspect};
+  }
+
+  /**
+   * Intersect two posting lists using zipper algorithm.
+   */
   PostingList intersectZipper(PostingList list1, PostingList list2) {
     int n1 = list1.ids.length;
     int n2 = list2.ids.length;
