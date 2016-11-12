@@ -3,25 +3,52 @@ Intel Core i5-4210U CPU @ 1.70GHz - 8GB RAM
 
 ### Baseline ###
 $ java -jar IntersectMain.jar existence.txt bielefeld.txt
-    4210
-    3472
-    4294
-    3668
-    3510
-    -> 3831
+    4771
+    4218
+    4684
+    4401
+    3456
+    -> 4306
 
 $ java -jar IntersectMain.jar them.txt bielefeld.txt
-    10158
-    10221
-    11896
-    10198
-    10239
-    -> 10542
+    19146
+    12052
+    12031
+    11189
+    11113
+    -> 13106
 
 $ java -jar IntersectMain.jar them.txt existence.txt
-    29070
-    17577
-    17807
-    17526
-    27651
-    -> 21926
+    27255
+    25764
+    50740
+    19103
+    26097
+    -> 29792
+
+### Improved ###
+$ java -jar IntersectMain.jar existence.txt bielefeld.txt
+    3082
+    2860
+    2382
+    2352
+    2409
+    -> 2617 (1.65)
+
+$ java -jar IntersectMain.jar them.txt bielefeld.txt
+    3473
+    3281
+    3111
+    3162
+    3027
+    -> 3220 (4.07)
+
+$ java -jar IntersectMain.jar them.txt existence.txt
+    13613
+    13061
+    12749
+    12171
+    12022
+    -> 12723 (2.34)
+
+Total avg.: 6187

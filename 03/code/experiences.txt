@@ -1,7 +1,8 @@
 General
 =======
-1 hour to find out that
-[junit] expected:<[10, 20[]]> but was:<[10, 20[, 0, 0, 0, 0]]>
+Took me an hour to find out that
+    [junit] expected:<[10, 20[]]> but was:<[10, 20[, 0, 0, 0, 0]]>
 means there's allocated but unused space in my result array and junit doesn't like it.
+Around 3-4 hours for the rest of the sheet.
 
-The corresponding lecture ...
+The corresponding lecture was easy to follow. I like the live coding and hope we'll be allowed to used Python for the next sheet again. :)
