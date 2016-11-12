@@ -46,9 +46,31 @@ public class Intersect {
   }
 
   /**
-   * Intersect two posting lists using the simple "zipper" algorithm.
+   * Intersect two posting lists using an appropriate algorithm.
    */
   PostingList intersect(PostingList list1, PostingList list2) {
+    PostingList small;
+    PostingList large;
+    if (list1.size < list2.size) {
+      small = list1;
+      large = list2;
+    } else {
+      small = list2;
+      large = list1;
+    }
+    if (small.size * 10 < large.size) {
+      return intersectBinary(small, large);
+    } else {
+      return intersectZipper(small, large);
+    }
+  }
+
+  PostingList intersectBinary(PostingList small, PostingList large) {
+    return intersectZipper(small, large);
+    //return new PostingList(ids, scores, k);
+  }
+
+  PostingList intersectZipper(PostingList list1, PostingList list2) {
     int n1 = list1.ids.length;
     int n2 = list2.ids.length;
     int n = Math.min(n1, n2);  // max result size.

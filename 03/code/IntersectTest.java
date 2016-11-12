@@ -34,8 +34,10 @@ public class IntersectTest {
 
     list1.ids = new int[] {5, 10, 20, 30, 50, 60, Integer.MAX_VALUE};
     list1.scores = new int[] {0, 1, 2, 3, 4, 5, 0};
+    list1.size = 6;
     list2.ids = new int[] {1, 2, 3, 10, 20, 40, 61, Integer.MAX_VALUE};
     list2.scores = new int[] {1, 5, 4, 1, 2, 4, 9, 0};
+    list1.size = 7;
 
     PostingList result = i.intersect(list1, list2);
     result.clean();
