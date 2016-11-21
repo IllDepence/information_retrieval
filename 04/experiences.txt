@@ -1,0 +1,5 @@
+General
+=======
+I spent about 3-4 hours looking into Lagrange optimization, wrapping my head around what we're trying to show in exercise 1, refreshing my memory of derivation rules and then bouncing back and forth between trying something and looking into the discussions going on on the forum.
+
+Now I'm really looking forward to implementation exercises again. :)

@@ -1,0 +1,74 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[a4paper, margin=1.3in]{geometry}
+\usepackage{mathtools}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+
+\newcommand{\sheetNr}{4}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Information Retrieval}
+\rhead{Exercise Sheet \sheetNr}
+\lfoot{ts341, \today}
+\rfoot{Page \thepage\ of \pageref{lastpage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+\setlength\parindent{0pt}
+\newcommand{\h}[0]{\text{--}}
+
+\begin{document}
+\begin{center}
+\LARGE{\textbf{Exercise Sheet \sheetNr}}
+\end{center}
+
+\section*{Exercise 1}
+Definition entropy: $H(X) = -\displaystyle\sum_i p_i$ $log_2(p_i)$\hphantom{aaaaaa}$p_i=Prob(X=i)$\\
+Shown in lecture: $\displaystyle\sum_x 2^{-L_x}\le 1$\hphantom{aaaaaaaaaaaaaaaaaa}$L_x=$ length of encoding for $x$\\
+Definition expectation: $E(L_x) = \displaystyle\sum_i p_i$ $L_i$\\
+\\
+\textbf{To show:} $E(L_x)\ge H(X)$\\
+\\
+Formulation of constraint: $\displaystyle\sum_x 2^{-L_x}-1 = 0$\\
+Lagrangian: $\mathcal{L}(L_1,L_2,...,\lambda) = \displaystyle\sum_i p_i$ $L_i - \lambda \displaystyle\sum_x 2^{-L_x}-1$\\
+
+Partial derivative $\frac{\partial \mathcal{L}}{\partial L_b}$ for some $b\in\{1,...,m\}$ yields $p_b+2^{-L_b} \lambda ln(2)$\\
+Partial derivative $\frac{\partial \mathcal{L}}{\partial \lambda}$ is $\displaystyle\sum_x 2^{-L_x}-1$.\\
+Setting both to $0$ gives us:\\
+
+\begin{equation}
+p_i+2^{-L_i} \lambda ln(2) = 0
+\end{equation}
+
+\begin{equation}
+\displaystyle\sum_i 2^{-L_i}-1=0
+\end{equation}
+
+We can reformulate (1) to:
+
+\begin{equation}
+2^{-L_i}=-\frac{p_i}{\lambda ln(2)}
+\end{equation}
+
+Inserting this in to (2), the $p_i$s sum up to 1, giving us:
+
+\begin{equation}
+-\frac{1}{\lambda ln(2)}-1 = 0
+\end{equation}
+\begin{equation}
+\Leftrightarrow \lambda = -\frac{1}{ln(2)}
+\end{equation}
+
+This solution for $\lambda$ can now be inserted into (1) to get rid of $\lambda$.
+
+\begin{equation}
+p_i+2^{-L_i} \Big(-\frac{1}{ln(2)}\Big) ln(2) = 0
+\end{equation}
+\begin{equation}
+\Leftrightarrow p_i+2^{-L_i} - 1 = 0
+\end{equation}
+
+This is where I'm stuck. We somehow should end up with the formula for the entropy (i.e. the conclusion that the minimum for the expectation $E(L_i)$ is the entropy $H(X)$).
+
+\label{lastpage}
+\end{document}

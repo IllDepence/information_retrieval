@@ -1,4 +1,6 @@
+*.aux
 *.class
+*.log
 *.pdf
 *.swp
 movies.txt
