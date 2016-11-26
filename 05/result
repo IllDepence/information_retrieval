@@ -1,0 +1,30 @@
+$ java -jar FuzzySearchMain.jar cities.txt
+Reading strings and building index... done.
+
+Query: London England
+#PED: 19646
+##### Result #####
+London, England
+Longdon, England
+Loddon, England
+Lyndon, England
+Linton, England
+(+233 more)
+Execution time: 1531ms
+
+Query: Freib
+#PED: 16833
+##### Result #####
+Freiburg im Breisgau, Baden-Württemberg
+Freibach, Kärnten
+Freiberg, Steiermark
+Freiberg, Sachsen
+Freiberg am Neckar, Baden-Württemberg
+(+173 more)
+Execution time: 250ms
+
+Query: Rotnburg ober Tauba
+#PED: 1774
+##### Result #####
+Rothenburg ob der Tauber, Bayern
+Execution time: 115ms

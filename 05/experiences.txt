@@ -1,3 +1,14 @@
 General
 =======
 Startup + 1.1 to 1.3 took me 2 hours.
+1.4 to 1.7 took me 2.5 hours.
+
+Lecture was easy to follow and introduced concepts interesting. The exercise
+sheet was okay I guess. Didn't feel like I was gaining huge insigts but took
+a considerable amount of time albeit not really feeling difficult. Maybe it's
+just my not being "fluent" enough in Java to quickly hack together a solution,
+resulting in an implementation time that doesn't seem worth the gain. Or it's
+the fact that in order to be correctable with reasonable effort, the exercises
+have to dictate a lot of structure (i.e. everything that's in the TIP file),
+making the solving process more about adhering to the already given than coming
+up with one's own solutions.

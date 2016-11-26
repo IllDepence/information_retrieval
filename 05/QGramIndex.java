@@ -161,6 +161,7 @@ public class QGramIndex {
     // check PED for candidates
     ArrayList<WordIdScorePedTriple> result =
       new ArrayList<WordIdScorePedTriple>();
+    System.out.println("#PED: " + Integer.toString(candidates.size()));
     for (int i = 0; i < candidates.size(); i++) {
       int id = candidates.get(i);
       String entity = entites.get(id).toLowerCase().replaceAll("\\W", "");
@@ -187,6 +188,10 @@ public class QGramIndex {
       }
     });
     return l;
+  }
+
+  public String getEnityById(int id) {
+    return entites.get(id);
   }
 
   // The value of q.
