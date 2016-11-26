@@ -1,0 +1,150 @@
+// Copyright 2016, University of Freiburg,
+// Chair of Algorithms and Data Structures.
+// Author: Hannah Bast <bast@cs.uni-freiburg.de>,
+//         Björn Buchhold <bucholb@cs.uni-freiburg.de>,
+//         Patrick Brosi <brosi@cs.uni-freiburg.de>.
+
+// Class that realizes error-tolerant prefix search.
+class QGramIndex {
+ // PUBLIC MEMBERS.
+
+  // Read input strings from file, where each line consists of one input string
+  // followed by a TAB followed by a score. The input strings must contain
+  // neither TABs nor newlines. The scores are used for ranking, see method
+  // findMatches below.
+  // Then build k-gram index from the input strings.
+  // Remember to transfor each q-Gram to lowercase and remove whitespaces.
+  //
+  // Expected 3-Gram Index for the example file:
+  // (do not check for this, this list is only for your orientation.)
+  //
+  // [$$f: 0 1 2 3 ] [$fo: 0 1 2 3 ]
+  // [foo: 0 1 2 3 ] [oot: 0 2 3 ]
+  // [otb: 0 3 ] [bal: 0 ] [all: 0 ] [oob: 1 ]
+  // [oba: 1 ] [bar: 1 3 ] [ots: 2 ] [tsa: 2 ] [sal: 2 ]
+  // [tba: 0 3 ] [arc: 3 ] [rca: 3 ]
+  //
+  // == TESTS ==
+  //
+  // QGramIndex ets(3);
+  // ets.buildFromFile("example.txt");
+  //
+  // Then do the following checks:
+  //
+  // Total size of 3Gram index == 16,
+  // Size of list for $fo == 4,
+  // Size of list for oot == 3,
+  // Size of list for tba == 2.
+
+  void buildFromFile(String fileName);
+
+
+  // Get the q-grams for an input-string. (Don't right-pad strings.)
+  //
+  // == TESTS ==
+  //
+  // Do the following check:
+  //
+  // QGramIndex ets(3);
+  // ets.getQGrams("lirum") == ("$$l", "$li", "lir", "iru", "rum")
+
+  Array<String> getQGrams(string input)
+
+
+  // For the given query prefix, find all word IDs to which the prefix edit
+  // distance is at most the given delta.
+  // Return them as triples (wordId, score, PED).
+  // As explained in the lecture, proceed as follows. First use the q-gram index
+  // to compute a set of candidate matches, using method computeUnion below. Then
+  // for each candidate match compute the exact PED to see whether it is really a
+  // match.
+  //
+  // == TESTS ==
+  //
+  // Do the following checks. The ordering of the results does not matter here. Just
+  // check for the presence of each triple.
+  //
+  // findMatches("foot", 1) == {(0, p=0, s=3), (1, p=1, s=1), (2, p=0, s=2), (3, p=0, s=1)}
+  // findMatches("woob", 1) == {(1, p=1, s=1)}
+
+  Array<Triple<int, int, int> findMatches(String prefix, int delta);
+
+
+  // Sort a list of (wordId, score, PED) triples w.r.t (PED, score)
+  //
+  // == TESTS ==
+  //
+  // Do the following checks (higher score = better, lower ped = better):
+  //
+  // sortResult((1, p=3, s=3), (2, p=2, s=4), (3, p=6, s=1), (4, p=3, s=2), (5, p=6, s=5))
+  //  == ((2, p=2, s=4), (1, p=3, s=3), (4, p=3, s=2), (5, p=6, s=5), (3, p=6, s=1))
+
+  Array<Triple<int, int, int>> sortResult(Array<Triple<int, int, int>> res);
+
+
+ // PRIVATE MEMBERS.
+
+  // Compute the prefix edit distance from the given query to the given string.
+  // Return the PED if ped <= delta, otherwise return delta + 1
+  //
+  // === TESTS ===
+  //
+  // Do the following checks:
+  //
+  // checkPrefixEditDistance("foo", "foo", 0) == 0;
+  // checkPrefixEditDistance("foo", "foo", 10) == 0;
+  // checkPrefixEditDistance("foo", "foot", 0) == 0;
+  // checkPrefixEditDistance("foot", "foo", 1) == 1;
+  // checkPrefixEditDistance("foo", "fotbal", 1) == 1;
+  // checkPrefixEditDistance("foo", "bar", 3)) == 3;
+  //
+  // checkPrefixEditDistance("perf", "perv", 1) == 1;
+  // checkPrefixEditDistance("perv", "perf", 1) == 1;
+  // checkPrefixEditDistance("perf", "peff", 1)) == 1;
+  //
+  // checkPrefixEditDistance("foot", "foo", 0) == 1;
+  // checkPrefixEditDistance("foo", "fotbal", 0) == 1;
+  // checkPrefixEditDistance("foo", "bar", 2) == 3;
+
+  int checkPrefixEditDistance(String prefix, String string, int delta);
+
+
+  // Compute the union of the given inverted lists from the q-gram index. In the
+  // result, along with each input string id, also store the number of q-grams
+  // (from the input lists) containing that string.
+  //
+  // == TESTS ==
+  //
+  // Do the following checks (depending on your implementation):
+  //
+  // computeUnion((1, 4, 6), (2, 4, 6, 9, 9)) == ((1, 1), (2, 1), (4, 2), (6, 2), (9, 2))
+  //
+  // or
+  //
+  // computeUnion((1, 4, 6), (2, 4, 6, 9, 9)) == (1, 2, 4, 4, 6, 6, 9, 9)
+  //
+
+  Array<Pair<int,int>> computeUnion(Array<Array<int>> lists);
+
+
+  // Normalize a string (do this before calculating the q grams)
+  //
+  // === TESTS ===
+  //
+  // You can test this method, but you don't have to.
+
+  String normalizeString(String input);
+
+
+  // The strings and their scores (in any data structure you see fit).
+  Array<String> words;
+  Array<int> scores;
+
+  // The q used for the index, stored because it is needed at query time.
+  int q;
+
+  // The inverted lists of the q-gram index. For each q-gram that occurs in one
+  // of the input strings, contains the list of ids of all input strings
+  // containing that q-gram.
+  Map<String, Array<int>> qgramIndex;
+}
