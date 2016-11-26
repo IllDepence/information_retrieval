@@ -21,6 +21,7 @@ public class QGramIndex {
   public QGramIndex(int q) {
     this.invertedLists = new TreeMap<String, ArrayList<Integer>>();
     this.scoreList = new TreeMap<Integer, Integer>();
+    this.entites = new ArrayList<String>();
     this.q = q;
     this.padding = new String(new char[q - 1]).replace("\u0000", "$");
   }
@@ -44,6 +45,7 @@ public class QGramIndex {
         invertedLists.get(qGram).add(entityId);
       }
       scoreList.put(entityId, score);
+      entites.add(name);
       entityId += 1;
     }
   }
@@ -141,6 +143,7 @@ public class QGramIndex {
     }
     ArrayList<Integer> union = computeUnion(preLst);
 
+    // get candidates
     TreeMap<Integer, Integer> numCommons = new TreeMap<Integer, Integer>();
     ArrayList<Integer> candidates = new ArrayList<Integer>();
     for (int i = 0; i < union.size(); i++) {
@@ -149,14 +152,24 @@ public class QGramIndex {
       }
       int newVal = numCommons.get(union.get(i)) + 1;
       numCommons.put(union.get(i), newVal);
-      if (newVal >= delta && ! candidates.contains(union.get(i))) {
+      if (newVal >= delta && !candidates.contains(union.get(i))) {
         candidates.add(union.get(i));
       }
     }
 
-    // seems to work correctly until here, next: check ped
+    // check PED for candidates
+    ArrayList<WordIdScorePedTriple> result =
+      new ArrayList<WordIdScorePedTriple>();
+    for (int i = 0; i < candidates.size(); i++) {
+      int id = candidates.get(i);
+      String entity = entites.get(id).toLowerCase().replaceAll("\\W", "");
+      int ped = checkPrefixEditDistance(prefix, entity, delta);
+      if (ped <= delta) {
+        result.add(new WordIdScorePedTriple(id, scoreList.get(id), ped));
+      }
+    }
 
-    return new ArrayList<WordIdScorePedTriple>();
+    return result;
   }
 
   // The value of q.
@@ -170,5 +183,8 @@ public class QGramIndex {
 
   // Map for storing scores.
   protected TreeMap<Integer, Integer> scoreList;
+
+  // Array for entries
+  protected ArrayList<String> entites;
 
 };
