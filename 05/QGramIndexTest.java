@@ -56,4 +56,14 @@ public class QGramIndexTest {
     Assert.assertEquals(1, qgi.checkPrefixEditDistance("foo", "fotbal", 0));
     Assert.assertEquals(3, qgi.checkPrefixEditDistance("foo", "bar", 2));
   }
+
+  @Test
+  public void findMatches() throws IOException {
+    QGramIndex qgi = new QGramIndex(3);
+    qgi.buildFromFile("example.txt");
+    Assert.assertEquals("{(0, p=0, s=3), (1, p=1, s=1), "
+        + "(2, p=0, s=2), (3, p=0, s=1)}",
+        qgi.findMatches("foot", 1));
+    Assert.assertEquals("{(1, p=1, s=1)}", qgi.findMatches("woob", 1));
+  }
 }

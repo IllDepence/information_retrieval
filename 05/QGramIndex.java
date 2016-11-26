@@ -130,27 +130,34 @@ public class QGramIndex {
    * For the given query prefix, find all word IDs to which the prefix edit
    * distance is at most the given delta..
    */
-  /*
   ArrayList<WordIdScorePedTriple> findMatches(String prefix, int delta) {
     ArrayList<String> queryQGrams = getQGrams(prefix);
-    ArrayList<ArrayList<Integer>> preList = new ArrayList<ArrayList<Integer>>()
+    ArrayList<ArrayList<Integer>> preLst = new ArrayList<ArrayList<Integer>>();
 
     for (int i = 0; i < queryQGrams.size(); i++) {
-      if (invertedLists.containsKey(queryQGrams[i])) {
-        preList.add(queryQGrams[i]);
+      if (invertedLists.containsKey(queryQGrams.get(i))) {
+        preLst.add(invertedLists.get(queryQGrams.get(i)));
       }
     }
-    ArrayList<Integer> union = computeUnion(preList);
+    ArrayList<Integer> union = computeUnion(preLst);
+
     TreeMap<Integer, Integer> numCommons = new TreeMap<Integer, Integer>();
+    ArrayList<Integer> candidates = new ArrayList<Integer>();
     for (int i = 0; i < union.size(); i++) {
-      if (!numCommons.containsKey(union[i])) {
-        
+      if (!numCommons.containsKey(union.get(i))) {
+        numCommons.put(union.get(i), 0);
+      }
+      int newVal = numCommons.get(union.get(i)) + 1;
+      numCommons.put(union.get(i), newVal);
+      if (newVal >= delta && ! candidates.contains(union.get(i))) {
+        candidates.add(union.get(i));
       }
     }
+
+    // seems to work correctly until here, next: check ped
 
     return new ArrayList<WordIdScorePedTriple>();
   }
-  */
 
   // The value of q.
   protected int q;
