@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.TreeMap;
 import java.util.ArrayList;
+import java.util.Comparator;
 
 /**
  * First steps towards a q-gram index, written during class.
@@ -170,6 +171,22 @@ public class QGramIndex {
     }
 
     return result;
+  }
+
+  /**
+   * Sort a list of (wordId, score, PED) triples w.r.t (PED, score).
+   */
+  ArrayList<WordIdScorePedTriple> sortRes(ArrayList<WordIdScorePedTriple> l) {
+    Collections.sort(l, new Comparator<WordIdScorePedTriple>() {
+      @Override
+      public int compare(WordIdScorePedTriple t1, WordIdScorePedTriple t2) {
+        if (t1.ped == t2.ped) {
+          return t2.score - t1.score;
+        }
+        return t1.ped - t2.ped;
+      }
+    });
+    return l;
   }
 
   // The value of q.

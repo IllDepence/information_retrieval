@@ -67,4 +67,18 @@ public class QGramIndexTest {
     Assert.assertEquals("[(1, p=1, s=1)]",
         qgi.findMatches("woob", 1).toString());
   }
+
+  @Test
+  public void sortRes() {
+    QGramIndex qgi = new QGramIndex(3);
+    ArrayList<WordIdScorePedTriple> l = new ArrayList<WordIdScorePedTriple>();
+    l.add(new WordIdScorePedTriple(1, 3, 3));
+    l.add(new WordIdScorePedTriple(2, 4, 2));
+    l.add(new WordIdScorePedTriple(3, 1, 6));
+    l.add(new WordIdScorePedTriple(4, 2, 3));
+    l.add(new WordIdScorePedTriple(5, 5, 6));
+    Assert.assertEquals("[(2, p=2, s=4), (1, p=3, s=3), (4, p=3, s=2), "
+        + "(5, p=6, s=5), (3, p=6, s=1)]",
+        qgi.sortRes(l).toString());
+  }
 }
