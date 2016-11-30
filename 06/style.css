@@ -1,0 +1,73 @@
+a, a:active, a:hover, a:link, a:visited {
+    text-decoration: none;
+    color: #048ac7;
+}
+a:hover {
+    color: #036693;
+}
+p, h1, h2, h3, h4, h5, h6 {
+    font-family: sans-serif;
+    color: #333;
+}
+p {
+    font-size: 12px;
+}
+small {
+    font-size: 8px;
+}
+em {
+    font-style: italic;
+}
+h1 {
+    font-size: 26px;
+    font-weight: bold;
+    padding: 5px;
+    border-bottom: solid 1px #333;
+}
+h5 {
+    font-weight: bold;
+}
+#query {
+    margin-top: 3px;
+    width: 400px;
+}
+p + p {
+    margin-top: 5px;
+}
+#main, #footer {
+    width: 700px;
+    margin: 0px auto;
+}
+#main {
+    background-color: #eee;
+    height: 500px;
+    margin-top: 100px;
+    padding: 7px 4px 7px 4px;
+}
+#main > *:nth-child(2) {
+    margin-top: 20px;
+}
+#main > *:not(:first-child) {
+    margin-left: 20px;
+}
+#footer {
+    margin-top: 3px;
+}
+#footer small:first-child {
+    display: inline-block;
+    float: left;
+}
+#footer small:last-child {
+    display: inline-block;
+    float: right;
+}
+#notfound {
+    width: 300px;
+    margin: 0px auto;
+    background-color: #eee;
+    margin-top: 200px;
+    padding: 7px 4px 7px 4px;
+}
+#notfound > p {
+    text-align: center;
+}
