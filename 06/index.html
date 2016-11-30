@@ -10,11 +10,16 @@
 <div id="main">
     <h1>FuzzySearch Demo</h1>
     <h5>Query</h5>
-    <input id="query">
+    <input id="fuzzyQuery" type="text" onkeyup="processQuery()">
+    <br>
+    <br>
+    <h5>Suggestions</h5>
+    <p id="result"></p>
 </div>
 <div id="footer">
     <p><small>ts341</small><small title="Pretty please. (T﹏T)">In hope there will be Python exercises again <em>soon</em>.</small></p>
 </div>
+<script src="search.js"></script>
 
 </body>
 </html>

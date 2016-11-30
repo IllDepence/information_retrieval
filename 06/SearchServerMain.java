@@ -11,6 +11,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.io.FileInputStream;
 import java.io.File;
+import java.util.ArrayList;
+import java.net.URLDecoder;
 
 /**
  * Demo search server.
@@ -29,6 +31,14 @@ public class SearchServerMain {
 
     ServerSocket server = new ServerSocket(port);
     BufferedWriter out = null;
+
+    // Set up fuzzy search
+    System.out.print("Reading strings and building index...");
+    QGramIndex qgi = new QGramIndex(3);
+    qgi.buildFromFile(inputFile);
+    System.out.println(" done.");
+    ArrayList<WordIdScorePedTriple> matches =
+      new ArrayList<WordIdScorePedTriple>();
 
     while (true) {
       String responseStatus = "";
@@ -59,7 +69,41 @@ public class SearchServerMain {
         if (reqParts.length > 1) {
           requestQuery = reqParts[1];
         }
-        if (requestPath.matches("^[A-Za-z0-9_\\.-]+$")) {
+        if (requestQuery.matches("q=.*")) {
+          // AJAX request
+          String query = requestQuery.split("=")[1]; //assuming no use of &
+          query = URLDecoder.decode(query, "UTF-8");
+          String queryOrg = query;
+          query = query.toLowerCase().replaceAll("\\W", "");
+          double num = (double) query.length();
+          double den = 4.0;
+          int delta = (int) Math.floor(num / den);
+          matches = qgi.findMatches(query, delta);
+          matches = qgi.sortRes(matches);
+
+          // building JSON by hand because why not ...
+          // (this will so break if queryOrg includes unescaped JSON syntax)
+          StringBuilder json = new StringBuilder();
+          json.append("{\"query\": \"" + queryOrg + "\",\"results\":[");
+          for (int i = 0; i < Math.min(30, matches.size()); i++) {
+            String city = qgi.getEnityById(matches.get(i).wordId);
+            String score = Integer.toString(matches.get(i).score);
+            String ped = Integer.toString(matches.get(i).ped);
+            if (i != 0) {
+              json.append(",");
+            }
+            json.append("{\"city\": \"" + city + "\","
+              + "\"score\": " + score + ","
+              + "\"ped\": " + ped + "}");
+          }
+          json.append("]}");
+
+          responseStatus = "200 OK";
+          responseType = "application/json";
+          contentString = json.toString();
+          System.out.println(json.toString());
+          System.out.println(json.toString().length());
+        } else if (requestPath.matches("^[A-Za-z0-9_\\.-]+$")) {
           // Nice request for a file in our local directory
           File file = new File(requestPath);
           if (file.canRead()) {
@@ -76,8 +120,6 @@ public class SearchServerMain {
             responseType = "application/javascript";
           } else if (requestPath.matches(".*\\.css$")) {
             responseType = "text/css";
-          } else if (requestPath.matches(".*\\.json$")) {
-            responseType = "application/json";
           }
           FileInputStream fis = new FileInputStream(file);
           byte[] bytes = new byte[(int) file.length()];
@@ -96,7 +138,8 @@ public class SearchServerMain {
       }
 
       response.append("HTTP/1.1 " + responseStatus + "\r\n");
-      response.append("Content-Length:  " + contentString.length() + "\r\n");
+      response.append("Content-Length:  "
+        + Integer.toString(contentString.getBytes("UTF-8").length) + "\r\n");
       response.append("Content-Type: " + responseType + "\r\n");
       response.append("\r\n");
       response.append(contentString);

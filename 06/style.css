@@ -27,11 +27,11 @@ h1 {
 h5 {
     font-weight: bold;
 }
-#query {
+#fuzzyQuery {
     margin-top: 3px;
     width: 400px;
 }
-p + p {
+p + p, h5 + p {
     margin-top: 5px;
 }
 #main, #footer {
@@ -70,4 +70,7 @@ p + p {
 }
 #notfound > p {
     text-align: center;
+}
+#result {
+    padding-left: 1px;
 }
