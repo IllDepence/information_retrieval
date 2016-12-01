@@ -31,7 +31,7 @@ h5 {
     margin-top: 3px;
     width: 400px;
 }
-p + p, h5 + p {
+p + p, h5 + p, h5 + * > p {
     margin-top: 5px;
 }
 #main, #footer {
@@ -49,6 +49,7 @@ p + p, h5 + p {
 }
 #main > *:not(:first-child) {
     margin-left: 20px;
+    margin-right: 20px;
 }
 #footer {
     margin-top: 3px;
@@ -72,5 +73,27 @@ p + p, h5 + p {
     text-align: center;
 }
 #result {
-    padding-left: 1px;
+}
+.resultItem {
+    cursor: pointer;
+}
+.resultItem:before {
+    font-family: monospace;
+    font-size: 18px;
+    line-height: 12px;
+    color: #555;
+    position: relative;
+    right: 3px;
+    top: 2px;
+    content: "\0000a0"
+}
+.resultItem:hover:before {
+    content: "\0027a4"
+}
+#metaResult {
+    margin-top: 10px;
+    padding: 7px 5px 0 5px;
+}
+#metaResult > p {
+    line-height: 15px;
 }

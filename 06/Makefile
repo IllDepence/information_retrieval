@@ -1,4 +1,4 @@
-PORT = 9999
+PORT = 8888
 FILE = cities.txt
 
 SearchServerMain.jar:

@@ -101,8 +101,6 @@ public class SearchServerMain {
           responseStatus = "200 OK";
           responseType = "application/json";
           contentString = json.toString();
-          System.out.println(json.toString());
-          System.out.println(json.toString().length());
         } else if (requestPath.matches("^[A-Za-z0-9_\\.-]+$")) {
           // Nice request for a file in our local directory
           File file = new File(requestPath);
