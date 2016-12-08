@@ -1,0 +1,7 @@
+General
+=======
+Spent about 4 hours on this sheet. A fair amount on the URL decoding and
+thinking about what to do with cookies. JSON escaping and additional stuff
+(usage of sessionStore etc.) were done quickly.
+
+All in all the sheet was fun.

@@ -1,0 +1,158 @@
+// Copyright 2016, University of Freiburg,
+// Chair of Algorithms and Data Structures.
+// Author: Patrick Brosi <brosi@cs.uni-freiburg.de>.
+
+
+// Start a HTTP server which serves city request results and
+// static files.
+//
+// Extend the code already given in SearchServerMain by the HTTP
+// functionality and use the QGramIndex-Class from ES5 to get
+// request results.
+//
+// As noted in the exercise, make sure that your Makefile contains a "start" target
+// that starts the server and variables PORT and FILE. It should work
+// like this:
+//
+// make PORT=<port> FILE=<file> start
+
+main(String[] args) {
+  // Build QGramIndex
+
+  while (true) {
+    // Listen on port for requests
+
+    // Parse HTTP GET request, decide if it is a file
+    // request or a query
+
+    if (queryRequest)
+      // Fetch query results from QGramIndex
+
+      // Render top 10 results as JSON and return it with
+      // appropriate http headers.
+    } else {
+      // Serve file with appropriate HTTP headers.
+      // If a file does not exist, return a 404.
+    }
+  }
+}
+
+
+// TESTS //
+
+// No pre-defined tests are required for this ES. However, if
+// you add new non-trivial methods, you should write tests for them.
+
+// Your server should behave like described below. Please note that you don't
+// have to implement the exact same JSON response format! Also note, again, that
+// the exact PED may depend on the UTF-8 implementation of your programming language
+// and/or your string normalization technique. Your top 10 results may differ _slightly_!
+//
+// Also note:
+//  * the queries and responses below are given without HTTP-headers
+//  * you don't have to pretty-print your JSON output
+
+_______________________________________________________________________________
+Query: http://<yourhost>:<yourport>/?q=breifurg+im+greisbau
+Response:
+{
+  "query": "breifurg im greisbau",
+  "results": [
+    {
+      "city": "Freiburg im Breisgau, Baden-Württemberg",
+      "score": 12,
+      "ped": 4
+    }
+  ]
+}
+
+_______________________________________________________________________________
+Query: http://<yourhost>:<yourport>/?q=shelbyville
+Response:
+{
+  "query": "shelbyville",
+  "results": []
+}
+
+_______________________________________________________________________________
+Query: http://<yourhost>:<yourport>/?q=bielefeld
+Response:
+{
+  "query": "bielefeld",
+  "results": [
+    {
+      "city": "Bielefeld, Nordrhein-Westfalen",
+      "score": 19,
+      "ped": 0
+    },
+    {
+      "city": "Liebefeld, Kanton Bern",
+      "score": 1,
+      "ped": 2
+    },
+    {
+      "city": "Belfeld, Limburg",
+      "score": 1,
+      "ped": 2
+    }
+  ]
+}
+
+_______________________________________________________________________________
+Query: http://<yourhost>:<yourport>/?q=freib
+Response:
+{
+  "query": "freib",
+  "results": [
+    {
+      "city": "Freiburg im Breisgau, Baden-Württemberg",
+      "score": 12,
+      "ped": 0
+    },
+    {
+      "city": "Freibach, Kärnten",
+      "score": 2,
+      "ped": 0
+    },
+    {
+      "city": "Freiberg, Sachsen",
+      "score": 1,
+      "ped": 0
+    },
+    {
+      "city": "Freiberg, Steiermark",
+      "score": 1,
+      "ped": 0
+    },
+    {
+      "city": "Freiberg Vinschga, Trentino-Alto Adige",
+      "score": 1,
+      "ped": 0
+    },
+    {
+      "city": "Freiberg, Trentino-Alto Adige",
+      "score": 1,
+      "ped": 0
+    },
+    {
+      "city": "Freiburg (Elbe), Niedersachsen",
+      "score": 1,
+      "ped": 0
+    },
+    {
+      "city": "Freiberg am Neckar, Baden-Württemberg",
+      "score": 1,
+      "ped": 0
+    },
+    {
+      "city": "Freixo de Espada à Cinta, Bragança",
+      "score": 112,
+      "ped": 1
+    },
+    {
+      "city": "Freixieiro de Soutelo, Viana do Castelo",
+      "score": 109,
+      "ped": 1
+    }
+  ]
+}

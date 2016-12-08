@@ -2,6 +2,7 @@ General
 =======
 Didn't pay close attention to the clock this time. I guess it took me about 4
 hours.
+/edit: +a little bit more time now that I implemented something for ex 1.6.
 
 Since most of it was shown in the lecture the Java stuff was pretty straight
 forward — albeit way less fun than coding Python. The web part wasn't new for
