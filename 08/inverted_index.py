@@ -47,6 +47,7 @@ class InvertedIndex:
         self.stopwords = []
 
         self.tdMatrix = None
+        self.rowIds = {}
 
         """ Pass 1: calculate tf, dl and avdl. """
         for line in fileObj:
@@ -108,7 +109,7 @@ class InvertedIndex:
         >>> ii.invertedLists = {"bla": l1, "blubb": l2}
         >>> ii.preprocessVsm()
         >>> r = ii.tdMatrix.todense().tolist()
-        >>> print(sorted(r, key=itemgetter(2)))
+        >>> print(sorted(r))
         [[0.0, 0.4, 0.1, 0.8], [0.2, 0.0, 0.6, 0.0]]
         >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
         >>> l1 = [(0, 0.2), (1, 0.2), (2, 0.6)]
@@ -118,21 +119,22 @@ class InvertedIndex:
         >>> r = ii.tdMatrix.todense().tolist()
         >>> r[0] = [float('%.3f' % v) for v in r[0]]
         >>> r[1] = [float('%.3f' % v) for v in r[1]]
-        >>> print(sorted(r, key=itemgetter(2)))
+        >>> print(sorted(r))
         [[0.0, 0.894, 0.164, 1.0], [1.0, 0.447, 0.986, 0.0]]
         """
 
-        nz_vals = []
-        row_inds = []
-        col_inds = []
+        nzVals = []
+        rowInds = []
+        colInds = []
         row = 0
         for word, invList in self.invertedLists.items():
             for recId, bm25score in invList:
-                nz_vals.append(bm25score)
-                row_inds.append(row)
-                col_inds.append(recId)
+                nzVals.append(bm25score)
+                rowInds.append(row)
+                colInds.append(recId)
+            self.rowIds[word] = row
             row += 1
-        A = scipy.sparse.csr_matrix((nz_vals, (row_inds, col_inds)))
+        A = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
         self.tdMatrix = A
 
         if l2normalize:
@@ -143,10 +145,6 @@ class InvertedIndex:
                 col = col.multiply(1/div)
                 B[:,i] = col
             self.tdMatrix = scipy.sparse.csr_matrix(B)
-
-        #q = scipy.sparse.csr_matrix([0, 1, 1, 0])
-        #scores = q.dot(A)
-        #print(scores)
 
     def merge(self, a, b):
         """
@@ -181,6 +179,48 @@ class InvertedIndex:
             res.append(b[j])
             j += 1
         return res
+
+    def processQueryVsm(self, q):
+        """ Process a query using the VSM. Return relevant documents sorted by
+        their BM25-scores.
+
+        >>> import io
+        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
+        >>> l1 = [(0, 0.2), (2, 0.6)]
+        >>> l2 = [(1, 0.4), (2, 0.1), (3, 0.8)]
+        >>> ii.invertedLists = {"bla": l1, "blubb": l2}
+        >>> ii.preprocessVsm()
+        >>> ii.processQueryVsm("bla blubb") # as above, rec/doc ids from 0
+        [(3, 0.8), (2, 0.7), (1, 0.4), (0, 0.2)]
+        >>> ii.processQueryVsm("bla blubb bla blubb")
+        [(3, 1.6), (2, 1.4), (1, 0.8), (0, 0.4)]
+        """
+
+        keywords = q.split(' ')
+        keywords = [w.lower() for w in keywords]
+        keywords = [w for w in keywords if w not in self.stopwords]
+
+        weighted = {}
+        for k in keywords:
+            if k not in weighted:
+                weighted[k] = 0
+            weighted[k] += 1
+        nzVals = []
+        rowInds = []
+        colInds = []
+        for key, val in weighted.items():
+            if key not in self.rowIds:
+                continue
+            nzVals.append(val)
+            rowInds.append(0)
+            colInds.append(self.rowIds[key])
+        Q = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
+        scores = Q.dot(self.tdMatrix)
+        scores = scores.todense().tolist()[0]
+        result = []
+        for i in range(0, len(scores)):
+            result.append((i, scores[i]))
+        return sorted(result, key=lambda x:-x[1])
 
     def processQuery(self, q):
         r""" Given a list of keywords, find the 3 best maches accoding to
