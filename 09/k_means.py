@@ -8,6 +8,7 @@ by Sam Hocevar. See the COPYING file for more details.
 
 import math
 import numpy
+import random
 import re
 import scipy.sparse
 import sys
@@ -147,11 +148,9 @@ class KMeans:
         >>> km = KMeans(io.StringIO('foo'), 1.75, 0.75)
         >>> m = scipy.sparse.csr_matrix([[ 0.7, 0.4, 0.1], [ 1.9, 0.5, 2.9]])
         >>> r = km.l2normalizeCols(m).todense().tolist()
-        >>> r[0] = [float('%.3f' % v) for v in r[0]]
-        >>> r[1] = [float('%.3f' % v) for v in r[1]]
-        >>> r[0]
+        >>> [float('%.3f' % v) for v in r[0]]
         [0.346, 0.625, 0.034]
-        >>> r[1]
+        >>> [float('%.3f' % v) for v in r[1]]
         [0.938, 0.781, 0.999]
         """
 
@@ -170,34 +169,79 @@ class KMeans:
 
     def initializeCentroids(self, k):
         """ Compute an m x k matrix with the initial (random) centroids.
+
+        Doctest:
+        Initializing is done by just using random documents (i.e. random
+        colums form the term document matrix) as centroids. To test this we use
+        a matrix with columns of same numbers, request a slice and test for
+        equality.
+
+        >>> import io
+        >>> km = KMeans(io.StringIO('foo'), 1.75, 0.75)
+        >>> r1 = [1, 2, 3, 4, 5, 6, 7]
+        >>> r2 = [1, 2, 3, 4, 5, 6, 7]
+        >>> km.tdMatrix = scipy.sparse.csr_matrix([r1, r2])
+        >>> res = km.initializeCentroids(1)
+        >>> res.todense().tolist()[0] == res.todense().tolist()[1]
+        True
         """
 
-        pass
+        m, n = self.tdMatrix.get_shape()
+        colIdxs = []
 
-    def computeDistances(self, documents, centroids):
-        """ Compute a k x n matrix such that the entry at i, j contains the
-        distance between the i-th centroid and the j-th document.
+        for i in range(k):
+            colIdxs.append(int(random.random() * m + .49))
+        mtrx = self.tdMatrix[:, colIdxs]
+        return scipy.sparse.csr_matrix(mtrx)
+
+    def computeDistances(self, docs, centroids):
+        """ Compute a k x n matrix such that the entry at i, j contains
+        (distance between the i-th centroid and the j-th document)^2 * 1/2.
+
+        >>> import io
+        >>> km = KMeans(io.StringIO('foo'), 1.75, 0.75)
+        >>> r1 = [0.9806, 0.0995, 0.9991]
+        >>> r2 = [0.1961, 0.9950, 0.0425]
+        >>> docs = scipy.sparse.csr_matrix([r1, r2])
+        >>> centroids = numpy.matrix([[0.5812, 0.6000], [0.8137, 0.8000]])
+        >>> res = km.computeDistances(docs, centroids)
+        >>> r = res.todense().tolist()
+        >>> [float('%.3f' % v) for v in r[0]]
+        [0.736, 0.515, 0.877]
+        >>> [float('%.3f' % v) for v in r[1]]
+        [0.714, 0.537, 0.856]
         """
 
-        # A: term-doc matrix (one doc per col)
-        # C: term-centroid matrix (one centroid per col)
-        # transpose(C) * A yields matrix were entry at i, j is dot product
-        #     between centroid i and document j
-
-        pass
+        prod = scipy.sparse.csr_matrix(centroids.transpose() * docs)
+        ones = numpy.ones(prod.get_shape())
+        diff = scipy.sparse.csr_matrix(ones - prod)
+        return diff.multiply(2).sqrt()
 
     def computeAssignment(self, distances):
         """ Assign each document to its closest centroid.
+
+        >>> import io
+        >>> km = KMeans(io.StringIO('foo'), 1.75, 0.75)
+        >>> r1 = [0.600, 0.800, 0.600]
+        >>> r2 = [0.800, 0.600, 0.800]
+        >>> dists = scipy.sparse.csr_matrix([r1, r2])
+        >>> r = km.computeAssignment(dists)
+        >>> r.todense().tolist()
+        [[1, 0, 1], [0, 1, 0]]
         """
 
-        pass
+        numClusters, numDocs = distances.get_shape()
+        nzVals = [1]*numDocs
+        colInds = [i for i in range(numDocs)]
+        rowInds = numpy.argmin(distances.todense(), axis=0).tolist()[0]
+        return scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
 
     def computeCentroids(self, docs, assignment):
         """ Compute an m x k matrix with new, normalized centroids.
 
         >>> import io
         >>> km = KMeans(io.StringIO('foo'), 1.75, 0.75)
-        >>> docs = numpy.matrix([[1, 0, 1], [0, 1, 0]])
+        >>> docs = scipy.sparse.csr_matrix([[1, 0, 1], [0, 1, 0]])
         >>> assignment = numpy.matrix([[0, 1, 0], [0, 0, 1], [1, 0, 0]])
         >>> res = km.computeCentroids(docs, assignment)
         >>> res.todense().tolist()
