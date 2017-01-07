@@ -11,7 +11,10 @@ import numpy
 import re
 import scipy.sparse
 import sys
-from operator import itemgetter
+
+_TF = False
+_TFIDF = False
+_L2 = False
 
 
 class InvertedIndex:
@@ -78,6 +81,10 @@ class InvertedIndex:
         self.numDocs = recordId  # started at 0, increased at loop end
         self.avdl = self.avdl / self.numDocs
 
+        # -------- tf switch --------
+        if _TF:
+            return
+
         """ Pass 2: calculate tf* idf. """
         tmpInvLists = {}
         for word, invList in self.invertedLists.items():
@@ -90,6 +97,9 @@ class InvertedIndex:
                 bm25tf = numer / denom
                 idf = math.log2(self.numDocs / df)
                 bm25score = bm25tf * idf
+                # -------- tf * idf switch --------
+                if _TFIDF:
+                    bm25score = tf * idf
                 """ Precision to 4 decimals as in TIP file. """
                 bm25score = float('{0:.4f}'.format(bm25score))
                 tmpInvLists[word].append((recId, bm25score))
@@ -135,50 +145,47 @@ class InvertedIndex:
             self.rowIds[word] = row
             row += 1
         A = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
-        self.tdMatrix = A
 
         if l2normalize:
-            B = scipy.sparse.lil_matrix(A)
-            for i in range(0, B.get_shape()[1]):
-                col = B[:,i]
-                div = numpy.linalg.norm(col.todense())
-                col = col.multiply(1/div)
-                B[:,i] = col
-            self.tdMatrix = scipy.sparse.csr_matrix(B)
+            # --- takes too much memory ---
+            # facVec = numpy.linalg.norm(A.toarray(), 2, 0)
+            # A = scipy.sparse.csr_matrix(A.multiply(1/facVec))
+            #
+            # --- takes too much time ---
+            # B = scipy.sparse.lil_matrix(A)
+            # for i in range(0, B.get_shape()[1]):
+            #     col = B[:, i]
+            #     div = numpy.linalg.norm(col.toarray())
+            #     col = col.multiply(1/div)
+            #     B[:, i] = col
+            # A = scipy.sparse.csr_matrix(B)
+            #
+            # --- still takes too much time ---
+            norms = []
+            nzColsPre = sorted(A.nonzero()[1])
+            nzCols = []
+            last = -42
+            for i in nzColsPre:
+                if i != last:
+                    nzCols.append(i)
+                last = i
+            for i in nzCols:
+                col = A.getcol(i)
+                norm = numpy.linalg.norm(col.toarray())
+                norms.append(norm)
+            nzVals = []
+            rowInds = []
+            colInds = []
+            row = 0
+            for word, invList in self.invertedLists.items():
+                for recId, bm25score in invList:
+                    nzVals.append(bm25score/norms[recId])
+                    rowInds.append(row)
+                    colInds.append(recId)
+                row += 1
+            A = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
 
-    def merge(self, a, b):
-        """
-        Returns the union of two (sorted!!) postings lists
-
-        >>> import io
-        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
-        >>> l1 = [(2, 0), (5, 2), (7, 7), (8, 6)]
-        >>> l2 = [(4, 1), (5, 3), (6, 3), (8, 3), (9, 8)]
-        >>> ii.merge(l1, l2)
-        [(2, 0), (4, 1), (5, 5), (6, 3), (7, 7), (8, 9), (9, 8)]
-        """
-
-        res = []
-        i = 0
-        j = 0
-        while i < len(a) and j < len(b):
-            if a[i][0] < b[j][0]:
-                res.append(a[i])
-                i += 1
-            elif b[j][0] < a[i][0]:
-                res.append(b[j])
-                j += 1
-            else:
-                res.append((a[i][0], a[i][1] + b[j][1]))
-                i += 1
-                j += 1
-        while i < len(a):
-            res.append(a[i])
-            i += 1
-        while j < len(b):
-            res.append(b[j])
-            j += 1
-        return res
+        self.tdMatrix = A
 
     def processQueryVsm(self, q):
         """ Process a query using the VSM. Return relevant documents sorted by
@@ -214,50 +221,14 @@ class InvertedIndex:
             nzVals.append(val)
             rowInds.append(0)
             colInds.append(self.rowIds[key])
-        Q = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
+        Q = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)),
+                                    shape=(1, self.tdMatrix.get_shape()[0]))
         scores = Q.dot(self.tdMatrix)
         scores = scores.todense().tolist()[0]
         result = []
         for i in range(0, len(scores)):
             result.append((i, scores[i]))
-        return sorted(result, key=lambda x:-x[1])
-
-    def processQuery(self, q):
-        r""" Given a list of keywords, find the 3 best maches accoding to
-        BM25.
-
-        >>> import io
-        >>> import pprint
-        >>> txt ='first docum.\nsecond second docum.\nthird third third docum.'
-        >>> f = io.StringIO(txt)
-        >>> ii = InvertedIndex(f, 1.75, 0.75)
-        >>> ii.processQuery('docum third')
-        [(2, 2.5207), (0, 0.0), (1, 0.0)]
-        """
-
-        keywords = q.split(' ')
-        keywords = [w.lower() for w in keywords]
-        keywords = [w for w in keywords if w not in self.stopwords]
-
-        """ Special cases. """
-        if len(keywords) == 0:
-            return []
-        if len(keywords) == 1:
-            if keywords[0] not in self.invertedLists:
-                return []
-            rawList = self.invertedLists[keywords[0]]
-            sortdList = sorted(rawList, key=lambda x: -x[1])
-            return sortdList
-
-        """ Actual merging. """
-        list1 = self.invertedLists[keywords[0]]
-        for i in range(1, len(keywords)):
-            if keywords[i] in self.invertedLists:
-                list2 = self.invertedLists[keywords[i]]
-                list1 = self.merge(list1, list2)
-
-        sortdList = sorted(list1, key=lambda x: -x[1])
-        return sortdList
+        return sorted(result, key=lambda x: -x[1])
 
     def setStopwords(self, lisd):
         self.stopwords = lisd
@@ -312,6 +283,7 @@ class EvaluateBenchmark:
 
         return pSum/len(relevantIds)
 
+
 if __name__ == '__main__':
     """ Answer user queries for a file given as command line parameter. """
 
@@ -349,6 +321,7 @@ if __name__ == '__main__':
             mpAtR = 0
             mAp = 0
             count = 0
+            ii.preprocessVsm(l2normalize=_L2)
             for line in f:
                 query, idLine = line.strip().split('\t')
                 relIds = idLine.split(' ')
@@ -356,14 +329,15 @@ if __name__ == '__main__':
                 whereas I work with IDs starting at 0, therefore I decrement
                 all relevant IDs by 1. """
                 relIds = [int(x)-1 for x in relIds]
-                result = ii.processQuery(query)
+                # result = ii.processQuery(query)
+                result = ii.processQueryVsm(query)
                 resIds = [r[0] for r in result]
                 pAt3 = eb.precisionAtK(resIds, relIds, 3)
                 pAtR = eb.precisionAtR(resIds, relIds)
                 ap = eb.avgPrecision(resIds, relIds)
-                print('\nQuery: {0}'.format(query))
-                print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
-                    pAt3, pAtR, ap))
+                # print('\nQuery: {0}'.format(query))
+                # print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
+                #     pAt3, pAtR, ap))
                 mpAt3 += pAt3
                 mpAtR += pAtR
                 mAp += ap

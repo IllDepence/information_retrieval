@@ -1,2 +1,42 @@
 General
 =======
+Took me 4-5 hours to get to the point were everything was implemented such that
+the doctest ran successfully and I could start with the benchmark.
+This revealed problems with the l2 norm (time/memory) that I tried to solve for
+abour 3 hours. In the end I just used one of the functional albeit very slow
+"solutions".
+
+
+Exercise 2
+==========
+(Because of performance problems I removed the "romantic comedy" query from the
+benchmark.)
+
+### processQuery
+MP@3 0.44 | MP@R 0.35 | MAP: 0.37
+
+### processQueryVsm
+
+##### BM25, w/o L2                  (b_)
+MP@3 0.44 | MP@R 0.35 | MAP: 0.37
+
+##### TFIDF, w/o L2                 (ti_)
+MP@3 0.19 | MP@R 0.20 | MAP: 0.21
+
+##### TF, w/o L2                    (t_)
+MP@3 0.11 | MP@R 0.09 | MAP: 0.08
+
+##### BM25, w/ L2                   (bl)
+MP@3 0.30 | MP@R 0.20 | MAP: 0.20
+
+##### TFIDF, w/ L2                  (til)
+MP@3 0.22 | MP@R 0.19 | MAP: 0.17
+
+##### TF, w/ L2                     (tl)
+MP@3 0.11 | MP@R 0.10 | MAP: 0.08
+
+### Conclusion
+b_ > bl > til,ti_ > tk > t_
+The score type (bm25 > tfidf > tf) accounts for most of the difference in
+results. Using l2 norming can bring slight improvements for tfidf and if but
+worsens the result for bm25 considerably.
