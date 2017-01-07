@@ -165,7 +165,16 @@ class KMeans:
         """ Cluster into k clusters using k-means and return k final centroids.
         """
 
-        pass
+        prevCentroids = self.initializeCentroids(k)
+        while True:
+            distances = self.computeDistances(self.tdMatrix, prevCentroids)
+            assignment = self.computeAssignment(distances)
+            centroids = self.computeCentroids(self.tdMatrix, assignment)
+            if (centroids - prevCentroids).nnz == 0:
+                break
+            prevCentroids = centroids
+
+        return centroids
 
     def initializeCentroids(self, k):
         """ Compute an m x k matrix with the initial (random) centroids.
@@ -190,7 +199,7 @@ class KMeans:
         colIdxs = []
 
         for i in range(k):
-            colIdxs.append(int(random.random() * m + .49))
+            colIdxs.append(int(random.random() * n + .49))
         mtrx = self.tdMatrix[:, colIdxs]
         return scipy.sparse.csr_matrix(mtrx)
 
@@ -259,14 +268,22 @@ if __name__ == '__main__':
         print('Usage: python3 k_means.py <filename> <k>')
         sys.exit()
 
-    print('Building inverted index ...')
     fileName = sys.argv[1]
+    k = int(sys.argv[2])
+
+    print('Building inverted index ...')
     with open(fileName) as f:
         km = KMeans(f, 1.2, 0.5)
     print('done')
 
-    # 1. Arguments: <records> <k>
-    # 2. Construct inverted index from given file
-    # 3. Build normalized term-document matrix
-    # 4. Run k-means with given k
-    # 5. Print the top-10 terms of each cluster.
+    km.preprocessVsm()
+    centroids = km.kMeans(k)
+    distances = km.computeDistances(km.tdMatrix, centroids)
+    k, n = distances.get_shape()
+    for i in range(k):
+        print('Cluster #{0}'.format(i))
+        row = distances.getrow(i).toarray()[0].ravel()
+        topIdx = row.argsort()[-10:]
+        for docIdx in topIdx:
+            title = km.records[docIdx]['line'].split('\t')[0]
+            print('    - {0}'.format(title))
