@@ -12,6 +12,7 @@ import random
 import re
 import scipy.sparse
 import sys
+import time
 
 
 class KMeans:
@@ -43,10 +44,11 @@ class KMeans:
         self.invertedLists = {}
         self.records = {}
         self.avdl = 0
+        self.idfs = {}
+        self.words = {}
         recordId = 0
 
         self.tdMatrix = None
-        self.rowIds = {}
 
         """ Pass 1: calculate tf, dl and avdl. """
         for line in fileObj:
@@ -88,8 +90,8 @@ class KMeans:
                 denom = self.k * (1-self.b + ((self.b*dl) / self.avdl)) + tf
                 bm25tf = numer / denom
                 idf = math.log2(self.numDocs / df)
+                self.idfs[word] = idf
                 bm25score = bm25tf * idf
-                # FIXME: save tf*idf for later here
                 """ Precision to 4 decimals as in TIP file. """
                 bm25score = float('{0:.4f}'.format(bm25score))
                 tmpInvLists[word].append((recId, bm25score))
@@ -132,7 +134,7 @@ class KMeans:
                 nzVals.append(bm25score)
                 rowInds.append(row)
                 colInds.append(recId)
-            self.rowIds[word] = row
+            self.words[row] = word
             row += 1
         A = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)))
 
@@ -166,15 +168,39 @@ class KMeans:
         """
 
         prevCentroids = self.initializeCentroids(k)
+        prevRSS = sys.maxsize
+        iterations = 0
         while True:
             distances = self.computeDistances(self.tdMatrix, prevCentroids)
             assignment = self.computeAssignment(distances)
             centroids = self.computeCentroids(self.tdMatrix, assignment)
+            RSS = self.calcRSS(distances)
+            iterations += 1
+            if (prevRSS - RSS < 10):
+                break
             if (centroids - prevCentroids).nnz == 0:
                 break
             prevCentroids = centroids
+            prevRSS = RSS
+        print('Clustering iterations: {0}'.format(iterations))
+        print('Final RSS: {0}'.format(int(RSS)))
 
         return centroids
+
+    def calcRSS(self, distances):
+        """ Calculate RSS
+
+        >>> import io
+        >>> km = KMeans(io.StringIO('foo'), 1.75, 0.75)
+        >>> r1 = [6, 8, 6]
+        >>> r2 = [8, 6, 8]
+        >>> r3 = [9, 9, 9]
+        >>> dists = scipy.sparse.csr_matrix([r1, r2, r3])
+        >>> km.calcRSS(dists)
+        18
+        """
+
+        return numpy.sum(numpy.nanmin(distances.todense(), axis=0))
 
     def initializeCentroids(self, k):
         """ Compute an m x k matrix with the initial (random) centroids.
@@ -199,7 +225,7 @@ class KMeans:
         colIdxs = []
 
         for i in range(k):
-            colIdxs.append(int(random.random() * n + .49))
+            colIdxs.append(int(random.random() * n))
         mtrx = self.tdMatrix[:, colIdxs]
         return scipy.sparse.csr_matrix(mtrx)
 
@@ -276,14 +302,28 @@ if __name__ == '__main__':
         km = KMeans(f, 1.2, 0.5)
     print('done')
 
+    start = time.time()
     km.preprocessVsm()
+    end = time.time()
+    timeBuildMatrix = float('%.1f' % (end-start))
+    print('Build time: {0}s'.format(timeBuildMatrix))
+
+    start = time.time()
     centroids = km.kMeans(k)
-    distances = km.computeDistances(km.tdMatrix, centroids)
-    k, n = distances.get_shape()
+    end = time.time()
+    timeClustering = int(end-start)
+    print('Clustering time: {0}s'.format(timeClustering))
+
     for i in range(k):
-        print('Cluster #{0}'.format(i))
-        row = distances.getrow(i).toarray()[0].ravel()
-        topIdx = row.argsort()[-10:]
-        for docIdx in topIdx:
-            title = km.records[docIdx]['line'].split('\t')[0]
-            print('    - {0}'.format(title))
+        print('Cluster #{0}'.format(i+1))
+        clusterCol = centroids[:, i].todense().tolist()
+        clusterVals = {}
+        for j in range(len(clusterCol)):
+            x = clusterCol[j][0]
+            idf = km.idfs[km.words[j]]
+            clusterVals[km.words[j]] = x * idf
+        s = [(k, clusterVals[k]) for k in sorted(clusterVals,
+                                                 key=clusterVals.get,
+                                                 reverse=True)]
+        for word, val in s[0:10]:
+            print('    - {0} ({1:.2f})'.format(word, val))

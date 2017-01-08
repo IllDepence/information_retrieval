@@ -1,2 +1,34 @@
 General
 =======
+Took me the good part of Saturday afternoon+evening and a few more hours on
+Sunday morning. I'd guess around 8 hours in total.
+
+Having to think of all the clustering sub steps in terms of matrix operations
+made my head hurt. In some instances the instant gratification monkey [1] may
+have taken over and make me place .transpose()s and the like here and there
+until the doctest ran through.
+
+[1] https://www.ted.com/talks/tim_urban_inside_the_mind_of_a_master_procrastinator
+
+
+Discussion of centroids
+=======================
+Centroids seem to be centered around general themes, movie genres or even
+ethnic/cultural characteristics (see run.txt).
+
+Example "film festival centroid":
+festival, entered, international, cannes, berlin, ...
+
+Example "cartoon centroid":
+animated, cartoon, short, looney, tunes, ...
+
+Example "chinese martial arts centroid":
+kong, hong, wong, chan, lau, cheung, martial, yuen, fu, ...
+
+Example "spanish centroid":
+de, la, el, argentine, mexican, del, en, al, luis, le, ...
+
+
+
+Seeing these centroids and realizing that they're actually centered around
+certain themes was the best part of the exercise. :)
