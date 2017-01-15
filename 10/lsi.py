@@ -10,6 +10,7 @@ import math
 import numpy
 import re
 import scipy.sparse
+import scipy.sparse.linalg
 import sys
 
 _TF = False
@@ -120,8 +121,9 @@ class InvertedIndex:
         >>> f = io.StringIO(txt)
         >>> ii = InvertedIndex(f, 1.75, 0.75)
         >>> ii.preprocessVsm(4)
-        >>> ii.tdMatrix.view('i8,i8,i8').sort(order=['f1'], axis=0)
-        >>> ii.tdMatrix
+        >>> m = ii.tdMatrix.todense()
+        >>> m.view('i8,i8,i8').sort(order=['f1'], axis=0)
+        >>> m
         matrix([[ 0.    ,  0.    ,  0.    ,  0.    ,  0.    ,  0.    ],
                 [ 0.    ,  0.    ,  0.    ,  0.7054,  0.    ,  0.    ],
                 [ 0.9437,  0.    ,  1.1355,  0.7054,  0.    ,  0.    ],
@@ -152,7 +154,48 @@ class InvertedIndex:
         if l2normalize:
             A = self.l2normalizeCols(A)
 
-        self.tdMatrix = A.todense()
+        self.tdMatrix = A
+
+    def preprocessLsi(self, k):
+        """Do LSI preprocessing. Perform SVD, compute V_k, U_k and U_k * S_k.
+
+        >>> import io
+        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
+        >>> r1 = [1.0, 1.0, 0.0, 1.0, 0.0, 0.0]
+        >>> r2 = [1.0, 0.0, 1.0, 1.0, 0.0, 0.0]
+        >>> r3 = [1.0, 1.0, 1.0, 2.0, 1.0, 1.0]
+        >>> r4 = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
+        >>> ii.tdMatrix = [r1, r2, r3, r4]
+        >>> ii.preprocessLsi(2)
+        >>> ii.Uk[0] = [float('%.3f' % v) for v in  ii.Uk[0]]
+        >>> ii.Uk[1] = [float('%.3f' % v) for v in  ii.Uk[0]]
+        >>> ii.Uk[2] = [float('%.3f' % v) for v in  ii.Uk[0]]
+        >>> ii.Uk[3] = [float('%.3f' % v) for v in  ii.Uk[0]]
+        >>> ii.Uk
+        array([[-0.47 ,  0.367],
+               [-0.47 ,  0.367],
+               [-0.47 ,  0.367],
+               [-0.47 ,  0.367]])
+        >>> ii.Vk[0] = [float('%.3f' % v) for v in  ii.Vk[0]]
+        >>> ii.Vk[1] = [float('%.3f' % v) for v in  ii.Vk[0]]
+        >>> ii.Vk
+        array([[-0.529, -0.225, -0.225,  0.027,  0.556,  0.556],
+               [-0.529, -0.225, -0.225,  0.027,  0.556,  0.556]])
+        >>> ii.UkSk[0] = [float('%.3f' % v) for v in  ii.UkSk[0]]
+        >>> ii.UkSk[1] = [float('%.3f' % v) for v in  ii.UkSk[0]]
+        >>> ii.UkSk[2] = [float('%.3f' % v) for v in  ii.UkSk[0]]
+        >>> ii.UkSk[3] = [float('%.3f' % v) for v in  ii.UkSk[0]]
+        >>> ii.UkSk
+        array([[-0.726,  1.397],
+               [-0.726,  1.397],
+               [-0.726,  1.397],
+               [-0.726,  1.397]])
+        """
+
+        U, S, Vt = scipy.sparse.linalg.svds(self.tdMatrix, k)
+        self.Uk = U[:, :k]
+        self.Vk = Vt[:k, :]
+        self.UkSk = self.Uk * S
 
     def l2normalizeCols(self, matrix):
         """ Functions to L2-normalize the columns of the given matrix.
@@ -211,7 +254,7 @@ class InvertedIndex:
         Q = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)),
                                     shape=(1, self.tdMatrix.shape[0]))
         scores = Q.dot(self.tdMatrix)
-        scores = scores.tolist()[0]
+        scores = scores.todense().tolist()[0]
         result = []
         for i in range(0, len(scores)):
             result.append((i, scores[i]))
@@ -308,7 +351,7 @@ if __name__ == '__main__':
             mpAtR = 0
             mAp = 0
             count = 0
-            ii.preprocessVsm(l2normalize=_L2)
+            ii.preprocessVsm(99, l2normalize=_L2)
             for line in f:
                 query, idLine = line.strip().split('\t')
                 relIds = idLine.split(' ')
