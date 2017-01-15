@@ -1,0 +1,9 @@
+General
+=======
+Instructions to re-use code from previous exercises were all over the place --
+not in the sense that they were in different locations, but inconsistent and
+unnecessarily hard to parse.
+The exercise sheet began with "copy from ES8", the TIP file startet out with
+"copy from ES2" -- or rather, "the exercise sheet asks you to copy from ES2",
+which it didn't at first glance, but later on kind of did -- only to continue
+with "copy from ES8 *or* ES9" for the read_from_file method.
