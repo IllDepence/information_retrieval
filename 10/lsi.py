@@ -197,6 +197,46 @@ class InvertedIndex:
         self.Vk = Vt[:k, :]
         self.UkSk = self.Uk * S
 
+    def processQueryLsi(self, q):
+        r""" Execute the query by projecting the query vector to latent space.
+
+        >>> import io
+        >>> txt ='internet web surfing\ninternet surfing\nweb surfing\nintern'
+        >>> txt +='et web surfing surfing beach\nsurfing beach\nsurfing beach'
+        >>> f = io.StringIO(txt)
+        >>> ii = InvertedIndex(f, 1.75, 0.75)
+        >>> ii.preprocessVsm(4)
+        >>> ii.preprocessLsi(2)
+        >>> res = ii.processQueryLsi("web surfing")
+        >>> [(x[0], 0.0) if x[1] == -0.0 else x for x in res]
+        [(0, 0.944), (3, 0.705), (2, 0.568), (1, 0.568), (5, 0.0), (4, 0.0)]
+        """
+
+        Q = self.prepareQueryMatrix(q)
+        qConc = Q * self.UkSk
+        scores = qConc.dot(self.Vk)
+        scores = numpy.round(scores, 3)
+        scores = scores.tolist()[0]
+        result = []
+        for i in range(0, len(scores)):
+            result.append((i, scores[i]))
+        return sorted(result, key=lambda x: (float(x[1]), x[0]), reverse=True)
+
+    def processQueryLsiComb(self, q, l):
+        r""" Execute the query by projecting the query vector to latent space
+        + linear combination with original scores.
+        """
+
+        Q = self.prepareQueryMatrix(q)
+        qConc = Q * self.UkSk
+        scores = l * Q * self.tdMatrix + (1 - l) * qConc.T * self.Vk
+        scores = numpy.round(scores, 3)
+        scores = scores.tolist()[0]
+        result = []
+        for i in range(0, len(scores)):
+            result.append((i, scores[i]))
+        return sorted(result, key=lambda x: (float(x[1]), x[0]), reverse=True)
+
     def l2normalizeCols(self, matrix):
         """ Functions to L2-normalize the columns of the given matrix.
 
@@ -217,22 +257,7 @@ class InvertedIndex:
         # divide each column by the the L^2 norm
         return matrix.multiply(scipy.sparse.csr_matrix(1/a))
 
-    def processQueryVsm(self, q):
-        """ Process a query using the VSM. Return relevant documents sorted by
-        their BM25-scores.
-
-        >>> import io
-        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
-        >>> l1 = [(0, 0.2), (2, 0.6)]
-        >>> l2 = [(1, 0.4), (2, 0.1), (3, 0.8)]
-        >>> ii.invertedLists = {"bla": l1, "blubb": l2}
-        >>> ii.preprocessVsm(99)
-        >>> ii.processQueryVsm("bla blubb") # as above, rec/doc ids from 0
-        [(3, 0.8), (2, 0.7), (1, 0.4), (0, 0.2)]
-        >>> ii.processQueryVsm("bla blubb bla blubb")
-        [(3, 1.6), (2, 1.4), (1, 0.8), (0, 0.4)]
-        """
-
+    def prepareQueryMatrix(self, q):
         keywords = q.split(' ')
         keywords = [w.lower() for w in keywords]
         keywords = [w for w in keywords if w not in self.stopwords]
@@ -253,12 +278,101 @@ class InvertedIndex:
             colInds.append(self.rowIds[key])
         Q = scipy.sparse.csr_matrix((nzVals, (rowInds, colInds)),
                                     shape=(1, self.tdMatrix.shape[0]))
+        return Q
+
+    def processQueryVsm(self, q):
+        """ Process a query using the VSM. Return relevant documents sorted by
+        their BM25-scores.
+
+        >>> import io
+        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
+        >>> l1 = [(0, 0.2), (2, 0.6)]
+        >>> l2 = [(1, 0.4), (2, 0.1), (3, 0.8)]
+        >>> ii.invertedLists = {"bla": l1, "blubb": l2}
+        >>> ii.preprocessVsm(99)
+        >>> ii.processQueryVsm("bla blubb") # as above, rec/doc ids from 0
+        [(3, 0.8), (2, 0.7), (1, 0.4), (0, 0.2)]
+        >>> ii.processQueryVsm("bla blubb bla blubb")
+        [(3, 1.6), (2, 1.4), (1, 0.8), (0, 0.4)]
+        """
+
+        Q = self.prepareQueryMatrix(q)
         scores = Q.dot(self.tdMatrix)
         scores = scores.todense().tolist()[0]
         result = []
         for i in range(0, len(scores)):
             result.append((i, scores[i]))
         return sorted(result, key=lambda x: -x[1])
+
+    def processQuery(self, q):
+        r""" Given a list of keywords, find the 3 best maches accoding to
+        BM25.
+
+        >>> import io
+        >>> import pprint
+        >>> txt ='first docum.\nsecond second docum.\nthird third third docum.'
+        >>> f = io.StringIO(txt)
+        >>> ii = InvertedIndex(f, 1.75, 0.75)
+        >>> ii.processQuery('docum third')
+        [(2, 2.5207), (0, 0.0), (1, 0.0)]
+        """
+
+        keywords = q.split(' ')
+        keywords = [w.lower() for w in keywords]
+        keywords = [w for w in keywords if w not in self.stopwords]
+
+        """ Special cases. """
+        if len(keywords) == 0:
+            return []
+        if len(keywords) == 1:
+            if keywords[0] not in self.invertedLists:
+                return []
+            rawList = self.invertedLists[keywords[0]]
+            sortdList = sorted(rawList, key=lambda x: -x[1])
+            return sortdList
+
+        """ Actual merging. """
+        list1 = self.invertedLists[keywords[0]]
+        for i in range(1, len(keywords)):
+            if keywords[i] in self.invertedLists:
+                list2 = self.invertedLists[keywords[i]]
+                list1 = self.merge(list1, list2)
+
+        sortdList = sorted(list1, key=lambda x: -x[1])
+        return sortdList
+
+    def merge(self, a, b):
+        """ Returns the union of two (sorted!!) postings lists
+
+        >>> import io
+        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
+        >>> a = [(2, 0), (5, 2), (7, 7), (8, 6)]
+        >>> b = [(4, 1), (5, 3), (6, 3), (8, 3), (9, 8)]
+        >>> ii.merge(a, b)
+        [(2, 0), (4, 1), (5, 5), (6, 3), (7, 7), (8, 9), (9, 8)]
+        """
+
+        res = []
+        i = 0
+        j = 0
+        while i < len(a) and j < len(b):
+            if a[i][0] < b[j][0]:
+                res.append(a[i])
+                i += 1
+            elif b[j][0] < a[i][0]:
+                res.append(b[j])
+                j += 1
+            else:
+                res.append((a[i][0], a[i][1] + b[j][1]))
+                i += 1
+                j += 1
+        while i < len(a):
+            res.append(a[i])
+            i += 1
+        while j < len(b):
+            res.append(b[j])
+            j += 1
+        return res
 
     def setStopwords(self, lisd):
         self.stopwords = lisd
@@ -267,7 +381,7 @@ class InvertedIndex:
 class EvaluateBenchmark:
     """ Class with functions for computing MP@3, MP@R and MAP. """
 
-    def precisionAtK(self, resultsIds, relevantIds, k):
+    def precisionAtK(self, resultIds, relevantIds, k):
         """ Given lists of calculated, actually relevant record IDs and k,
         calculate P@k.
 
@@ -276,14 +390,14 @@ class EvaluateBenchmark:
         0.75
         """
 
-        res = resultsIds[0:k]
+        res = resultIds[0:k]
         hit = 0
         for r in relevantIds:
             if r in res:
                 hit += 1
         return hit/k
 
-    def precisionAtR(self, resultsIds, relevantIds):
+    def precisionAtR(self, resultIds, relevantIds):
         """ Given lists of calculated and actually relevant record IDs,
         calculate P@R.
 
@@ -292,9 +406,9 @@ class EvaluateBenchmark:
         0.5
         """
 
-        return self.precisionAtK(resultsIds, relevantIds, len(relevantIds))
+        return self.precisionAtK(resultIds, relevantIds, len(relevantIds))
 
-    def avgPrecision(self, resultsIds, relevantIds):
+    def avgPrecision(self, resultIds, relevantIds):
         """ Given lists of calculated and actually relevant record IDs,
         calculate AP.
 
@@ -303,27 +417,28 @@ class EvaluateBenchmark:
         0.525
         """
 
-        pSum = 0
-        for relId in relevantIds:
-            if relId not in resultsIds:
-                continue
-            else:
-                k = resultsIds.index(relId) + 1
-                pSum += self.precisionAtK(resultsIds, relevantIds, k)
-
-        return pSum/len(relevantIds)
-
+        sum = 0.0
+        matchedRelevant = 0
+        for i, r in enumerate(resultIds):
+            if r in relevantIds:
+                matchedRelevant += 1
+                sum += (matchedRelevant / (i + 1))
+        return sum / len(relevantIds)
 
 if __name__ == '__main__':
     """ Answer user queries for a file given as command line parameter. """
 
-    if len(sys.argv) != 2:
-        print('Usage: python3 inverted_index.py <filename>')
+    if len(sys.argv) != 5:
+        print('Usage: python3 inverted_index.py <recs> <k> <m> <benchmark>')
         sys.exit()
 
+    recFileName = sys.argv[1]
+    k = int(sys.argv[2])
+    m = int(sys.argv[3])
+    bmFileName = sys.argv[4]
+
     print('Building inverted index ...')
-    fileName = sys.argv[1]
-    with open(fileName) as f:
+    with open(recFileName) as f:
         ii = InvertedIndex(f, 1.2, 0.5)
     print('done')
 
@@ -346,12 +461,13 @@ if __name__ == '__main__':
                 print('[1m[{0:.4f}][0m: {1}'.format(score, text))
     elif mode == 'b':
         eb = EvaluateBenchmark()
-        with open('movies-benchmark.txt') as f:
+        with open(bmFileName) as f:
             mpAt3 = 0
             mpAtR = 0
             mAp = 0
             count = 0
-            ii.preprocessVsm(99, l2normalize=_L2)
+            ii.preprocessVsm(m, l2normalize=_L2)
+            ii.preprocessLsi(k)
             for line in f:
                 query, idLine = line.strip().split('\t')
                 relIds = idLine.split(' ')
@@ -360,14 +476,16 @@ if __name__ == '__main__':
                 all relevant IDs by 1. """
                 relIds = [int(x)-1 for x in relIds]
                 # result = ii.processQuery(query)
-                result = ii.processQueryVsm(query)
+                # result = ii.processQueryVsm(query)
+                # result = ii.processQueryLsi(query)
+                result = ii.processQueryLsiComb(query, 0.67)
                 resIds = [r[0] for r in result]
                 pAt3 = eb.precisionAtK(resIds, relIds, 3)
                 pAtR = eb.precisionAtR(resIds, relIds)
                 ap = eb.avgPrecision(resIds, relIds)
-                # print('\nQuery: {0}'.format(query))
-                # print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
-                #     pAt3, pAtR, ap))
+                print('\nQuery: {0}'.format(query))
+                print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
+                    pAt3, pAtR, ap))
                 mpAt3 += pAt3
                 mpAtR += pAtR
                 mAp += ap
