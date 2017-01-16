@@ -394,7 +394,7 @@ class InvertedIndex:
         True
         >>> 'spoon' in r
         True
-        >>> r[2]
+        >>> print('{0:.3f}'.format(r[2]))
         0.285
         """
 
@@ -459,6 +459,7 @@ class EvaluateBenchmark:
                 matchedRelevant += 1
                 sum += (matchedRelevant / (i + 1))
         return sum / len(relevantIds)
+
 
 if __name__ == '__main__':
     """ Answer user queries for a file given as command line parameter. """
