@@ -1,9 +1,27 @@
-General
-=======
-Instructions to re-use code from previous exercises were all over the place --
-not in the sense that they were in different locations, but inconsistent and
-unnecessarily hard to parse.
+Before starting to code
+=======================
 The exercise sheet began with "copy from ES8", the TIP file startet out with
 "copy from ES2" -- or rather, "the exercise sheet asks you to copy from ES2",
 which it didn't at first glance, but later on kind of did -- only to continue
-with "copy from ES8 *or* ES9" for the read_from_file method.
+with "copy from ES8 *or* ES9".
+Facing this funny puzzle of convoluted code reuse right at the start of
+tackling the exercise sheet was quite the motivation drainer.
+
+General
+=======
+Didn't keep a close eye on the time. Spent most of Sunday afternoon + evening
+coding and procrastinating from coding.
+
+Related terms
+=============
+The highest rated entries seem to be terms that belong to set or typical
+sentence patterns like festival+at as in "festival at <venue>" [1] or best+for,
+award+for, etc.
+A nice example for a more or less synonymous pair of terms is line 32 in my
+term_paris.txt her+his.
+Furthermore languages and words in these languages get teamed up, e.g. line 80
+la+french. Nice. :)
+
+[1] Inspection of the movies.txt file revealed that "festival at" actually only
+appears a mere 5 times in total. Maybe sentences like "at the XY festival" or
+so also played a role.

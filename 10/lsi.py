@@ -230,7 +230,6 @@ class InvertedIndex:
         Q = self.prepareQueryMatrix(q)
         qConc = Q * self.UkSk
         scores = l * Q * self.tdMatrix + (1 - l) * qConc.T * self.Vk
-        scores = numpy.round(scores, 3)
         scores = scores.tolist()[0]
         result = []
         for i in range(0, len(scores)):
@@ -377,6 +376,42 @@ class InvertedIndex:
     def setStopwords(self, lisd):
         self.stopwords = lisd
 
+    def relatedTermPairs(self, k):
+        """ Compute the term-term association matrix T. Return the k term pairs
+        with highest values, sorted by their values.
+
+        >>> import io
+        >>> ii = InvertedIndex(io.StringIO('foo'), 1.75, 0.75)
+        >>> ii.invertedLists = {}
+        >>> ii.invertedLists["lirum"] = [(2, 0.1)]
+        >>> ii.invertedLists["larum"] = [(8, 0.8)]
+        >>> ii.invertedLists["spoon"] = [(1, 0.2), (3, 0.6), (4, 0.1)]
+        >>> ii.invertedLists["handle"] = [(2, 0.4), (3, 0.1), (4, 0.8)]
+        >>> ii.preprocessVsm(4)
+        >>> ii.preprocessLsi(2)
+        >>> r = ii.relatedTermPairs(1)[0]
+        >>> 'handle' in r
+        True
+        >>> 'spoon' in r
+        True
+        >>> r[2]
+        0.285
+        """
+
+        T = self.Uk.dot(self.Uk.T)
+        numpy.fill_diagonal(T, 0)  # get rid of same term values
+        T = numpy.tril(T)          # get rid of duplicate values
+        termMap = {v: k for k, v in self.rowIds.items()}
+        vals = [item for sublist in T.tolist() for item in sublist]
+        vals = sorted(vals, reverse=True)
+        termPairs = []
+        for val in vals[0:k]:
+            pos = numpy.where(T == val)
+            t1 = termMap[pos[0][0]]
+            t2 = termMap[pos[1][0]]
+            termPairs.append((t1, t2, val))
+        return termPairs
+
 
 class EvaluateBenchmark:
     """ Class with functions for computing MP@3, MP@R and MAP. """
@@ -439,7 +474,7 @@ if __name__ == '__main__':
 
     print('Building inverted index ...')
     with open(recFileName) as f:
-        ii = InvertedIndex(f, 1.2, 0.5)
+        ii = InvertedIndex(f, 1.75, 0.3)
     print('done')
 
     stopwords = []
@@ -448,17 +483,14 @@ if __name__ == '__main__':
             stopwords.append(line.strip())
     ii.setStopwords(stopwords)
 
-    mode = input('\n[i]nteractive or [b]enchmark?\n> ')
-    if mode == 'i':
-        while True:
-            queryLine = input('\nEnter a query (space separated keywords)\n> ')
-            matches = ii.processQuery(queryLine)
-            for recId, score in matches[0:3]:
-                text = ii.records[recId]['line'].strip()
-                for keyword in queryLine.split(' '):
-                    patt = r'\b(' + keyword + r')\b'
-                    text = re.sub(patt, '[32m\g<0>[0m', text, flags=re.I)
-                print('[1m[{0:.4f}][0m: {1}'.format(score, text))
+    mode = input('\n[t]erm pairs or [b]enchmark?\n> ')
+    if mode == 't':
+        ii.preprocessVsm(m, l2normalize=_L2)
+        ii.preprocessLsi(k)
+        terms = ii.relatedTermPairs(100)
+        with open('term_pairs.txt', 'w') as f:
+            for t in terms:
+                f.write('{0}, {1}   [{2}]\n'.format(t[0], t[1], t[2]))
     elif mode == 'b':
         eb = EvaluateBenchmark()
         with open(bmFileName) as f:
@@ -483,9 +515,9 @@ if __name__ == '__main__':
                 pAt3 = eb.precisionAtK(resIds, relIds, 3)
                 pAtR = eb.precisionAtR(resIds, relIds)
                 ap = eb.avgPrecision(resIds, relIds)
-                print('\nQuery: {0}'.format(query))
-                print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
-                    pAt3, pAtR, ap))
+                # print('\nQuery: {0}'.format(query))
+                # print('P@3 {0:.2f} | P@R {1:.2f} | AP: {2:.2f}'.format(
+                #     pAt3, pAtR, ap))
                 mpAt3 += pAt3
                 mpAtR += pAtR
                 mAp += ap
