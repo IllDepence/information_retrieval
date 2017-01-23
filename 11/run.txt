@@ -1,0 +1,59 @@
+$ python3 naive_bayes.py movie_genres_train.txt movie_genres_test.txt
+
+Class Thriller (p_c = 0.160)
+  Precision: 21.35%
+  Recall: 13.93%
+  F-Score: 16.86%
+  Top 30 words: film, directed, s, written, thriller, starring, released, american, stars, based, drama, produced, horror, action, movie, also, story, crime, first, novel, festival, john, one, films, series, best, 2013, british, name, two
+
+Class Comedy (p_c = 0.415)
+  Precision: 54.33%
+  Recall: 10.25%
+  F-Score: 17.25%
+  Top 30 words: film, directed, comedy, s, written, starring, released, short, american, stars, produced, drama, movie, based, also, first, one, story, festival, best, series, films, two, british, romantic, made, 2013, animated, 2011, john
+
+Class Animation (p_c = 0.116)
+  Precision: 13.09%
+  Recall: 35.20%
+  F-Score: 19.08%
+  Top 30 words: film, directed, short, animated, animation, s, written, released, produced, cartoon, series, first, 2013, based, 2011, 2012, movie, also, disney, story, feature, comedy, one, american, 2010, video, dvd, time, warner, films
+
+Class Science Fiction (p_c = 0.057)
+  Precision: 6.50%
+  Recall: 43.19%
+  F-Score: 11.31%
+  Top 30 words: film, directed, s, science, fiction, written, released, series, american, produced, movie, starring, based, first, horror, stars, also, story, short, films, one, action, comedy, fi, sci, television, original, time, world, john
+
+Class Documentary film (p_c = 0.252)
+  Precision: 47.25%
+  Recall: 22.59%
+  F-Score: 30.57%
+  Top 30 words: film, documentary, directed, s, written, short, festival, 2013, american, produced, life, 2012, world, one, 2011, 2010, new, award, first, also, released, music, story, best, war, 2009, 2008, two, people, footage
+
+- - - - - - -
+
+$ python3 naive_bayes.py movie_ratings_train.txt movie_ratings_test.txt
+
+Class PG-13 (USA) (p_c = 0.175)
+  Precision: 9.85%
+  Recall: 5.66%
+  F-Score: 7.19%
+  Top 30 words: film, directed, s, american, written, comedy, starring, released, stars, based, drama, produced, story, also, first, movie, best, john, united, novel, series, new, name, romantic, festival, 2008, michael, states, one, life
+
+Class R (USA) (p_c = 0.515)
+  Precision: 39.05%
+  Recall: 5.10%
+  F-Score: 9.02%
+  Top 30 words: film, directed, s, written, american, starring, released, stars, drama, comedy, based, also, horror, story, movie, best, produced, festival, thriller, first, john, action, novel, new, films, michael, one, united, two, name
+
+Class G (p_c = 0.131)
+  Precision: 5.20%
+  Recall: 31.09%
+  F-Score: 8.91%
+  Top 30 words: film, directed, drama, s, 2013, written, japanese, comedy, documentary, based, 2012, released, best, american, festival, story, stars, action, 2014, produced, starring, first, series, also, movie, 2011, one, novel, award, international
+
+Class PG (USA) (p_c = 0.179)
+  Precision: 11.42%
+  Recall: 5.86%
+  F-Score: 7.75%
+  Top 30 words: film, directed, s, american, written, comedy, released, starring, based, stars, produced, movie, story, also, first, drama, best, john, series, novel, pictures, films, family, name, screenplay, one, two, award, original, new

@@ -1,10 +1,12 @@
 """
-Copyright 2017, University of Freiburg.
+Copyright 2016 Tarek Saier <tarek.saier@uranus.uni-freiburg.de>
 
-Elmar Haussmann <haussmann@cs.uni-freiburg.de>
-Patrick Brosi <brosi@cs.uni-freiburg.de>
+This work is free. You can redistribute it and/or modify
+it under the terms of the WTFPL, Version 2, as published
+by Sam Hocevar. See the COPYING file for more details.
 """
 
+import math
 import re
 import sys
 
@@ -13,11 +15,10 @@ _EPSILON = .1
 
 class NaiveBayes():
 
-    def __init__(self, filename):
-        """
-        Create NaiveBayes instance given a training file.
+    def __init__(self, filename, test=False):
+        """ Create a NaiveBayes instance given a training file.
 
-        >>> nb = NaiveBayes("example.txt")
+        >>> nb = NaiveBayes("example.txt", True)
         >>> [val['pc'] for val in list(nb.c.values())]
         [0.5, 0.5]
         >>> print('{0:.3f}'.format(nb.c['A']['pwcs']['a']))
@@ -29,6 +30,13 @@ class NaiveBayes():
         >>> print('{0:.3f}'.format(nb.c['B']['pwcs']['b']))
         0.665
         """
+
+        self.test = test
+
+        self.stopwords = []
+        with open('stopwords_en.txt') as f:
+            for line in f:
+                self.stopwords.append(line.strip())
 
         self.c = {}  # classes
         vocab = []
@@ -46,6 +54,8 @@ class NaiveBayes():
                     self.c[label]['docCount'] = 0
 
                 words = re.sub('\W+', ' ', text.lower()).split()
+                if not self.test:
+                    words = [w for w in words if w not in self.stopwords]
                 self.c[label]['docCount'] += 1
                 for w in words:
                     if w not in self.c[label]['nwcs']:
@@ -56,39 +66,75 @@ class NaiveBayes():
                 documentCount += 1
 
         vocabSize = len(set(vocab))
-
-        for label, val in self.c.items():
-            self.c[label]['pc'] = self.c[label]['docCount'] / documentCount
-            for w, cnt in self.c[label]['nwcs'].items():
+        for label, cls in self.c.items():
+            self.c[label]['pc'] = cls['docCount'] / documentCount
+            for w, cnt in cls['nwcs'].items():
                 self.c[label]['pwcs'][w] = (cnt + _EPSILON) /\
-                                (self.c[label]['nc'] + _EPSILON * vocabSize)
+                                            (cls['nc'] + _EPSILON * vocabSize)
 
-    def predict(self):
-        """
-        Predict a label for each example in the document-term matrix,
-        based on the learned probabities stored in this class.
+    def predict(self, filename):
+        """ Predict a label for each document in the given test file.
 
-        Return a list of predicted label ids.
-
-        >>> # wv, cv = generate_vocab("example.txt")
-        >>> # X, y = read_labeled_data("example.txt", cv, wv)
-        >>> # nb = NaiveBayes()
-        >>> # nb.train(X, y)
-        >>> # X_test, y_test = read_labeled_data("example_test.txt", cv, wv)
-        >>> # nb.predict(X_test)
-        >>> #     array([0, 1])
-        >>> # nb.predict(X)
-        >>> #     array([0, 0, 1, 0, 1, 1])
+        >>> nb = NaiveBayes("example.txt", True)
+        >>> nb.predict("example_test.txt")
+        >>> [val['predLabel'] for val in nb.predictions]
+        ['A', 'B']
+        >>> nb.predict("example.txt")
+        >>> [val['predLabel'] for val in nb.predictions]
+        ['A', 'A', 'B', 'A', 'B', 'B']
         """
 
-        return None  # TODO!
+        self.predictions = []
+
+        with open(filename, 'r') as f:
+            for line in f:
+                parts = line.strip().split('\t')
+                realLabel, text = parts[0], parts[1]
+                words = re.sub('\W+', ' ', text.lower()).split()
+                if not self.test:
+                    words = [w for w in words if w not in self.stopwords]
+                prediction = None
+                bestP = -sys.maxsize
+                for label, cls in self.c.items():
+                    prob = 0
+                    for w in words:
+                        if w in cls['pwcs']:
+                            prob += math.log(cls['pwcs'][w])
+                    prob += math.log(cls['pc'])
+                    if prob > bestP:
+                        prediction = label
+                        bestP = prob
+                predObj = {}
+                predObj['doc'] = text
+                predObj['realLabel'] = realLabel
+                predObj['predLabel'] = prediction
+                self.predictions.append(predObj)
+                # pre eval code
+                if 'testDocs' not in self.c[realLabel]:
+                    self.c[realLabel]['testDocs'] = 0
+                self.c[realLabel]['testDocs'] += 1
+                if 'predDocs' not in self.c[prediction]:
+                    self.c[prediction]['predDocs'] = 0
+                self.c[prediction]['predDocs'] += 1
+                if realLabel == prediction:
+                    if 'rightPreds' not in self.c[realLabel]:
+                        self.c[realLabel]['rightPreds'] = 0
+                    self.c[realLabel]['rightPreds'] += 1
 
     def evaluate(self):
-        """
-        Predict the labels of X and print evaluation statistics.
+        """ Calculate and output evaluation.
         """
 
-        # TODO!
+        for label, cls in self.c.items():
+            print('\nClass {0} (p_c = {1:.3f})'.format(label, cls['pc']))
+            precision = cls['rightPreds'] / cls['predDocs']
+            recall = cls['rightPreds'] / cls['testDocs']
+            fscore = (2 * precision * recall) / (precision + recall)
+            print('  Precision: {0:.2f}%'.format(precision*100))
+            print('  Recall: {0:.2f}%'.format(recall*100))
+            print('  F-Score: {0:.2f}%'.format(fscore*100))
+            bestWords = sorted(cls['pwcs'], key=cls['pwcs'].get, reverse=True)
+            print('  Top 30 words: {0}'.format(', '.join(bestWords[0:30])))
 
 
 def main():
@@ -96,11 +142,9 @@ def main():
         print("Usage: python3 naive_bayes.py <train-input> <test-input>")
         exit(1)
 
-    # do training on training dataset
-
-    # run the evaluation on the test dataset
-
-    # print the 30 words with the highest p_wc values per class
+    nb = NaiveBayes(sys.argv[1])
+    nb.predict(sys.argv[2])
+    nb.evaluate()
 
 if __name__ == '__main__':
     main()

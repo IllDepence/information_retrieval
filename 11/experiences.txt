@@ -9,3 +9,10 @@ General
 It was *VERY* nice to be able to write code from scratch again. Not having to
 work with code from a previous exercise sheet or otherwise given code makes it
 way easier to get started in my opinion.
+
+Results
+=======
+It was nice to see that for the movie genres the genre itself was always in the
+top 5 words. Otherwise the top 30 are hard to make much sense of.
+In general the results for the movie genres are better than for the movie
+ratings.
