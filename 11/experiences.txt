@@ -1,0 +1,11 @@
+Lecture
+=======
+Since Bielefeld was included in exercise sheet 5's cities.txt -- merely as a
+joke, I presume --, I was very relieved to see the truth hinted at in lecture
+11 slide 15.
+
+General
+=======
+It was *VERY* nice to be able to write code from scratch again. Not having to
+work with code from a previous exercise sheet or otherwise given code makes it
+way easier to get started in my opinion.
